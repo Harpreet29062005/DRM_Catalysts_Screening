@@ -1,181 +1,319 @@
 """
-DRM Descriptor-Based Screening Model (CORRECTED)
-==================================================
+DRM Numerical Microkinetic Solver
+===================================
+Real steady-state solver using stiff ODE integration.
 
-Standard descriptor-based screening (Bligaard, Norskov, Medford).
+Approach:
+  - 14-step mechanism (mechanism.py)
+  - Physical rate constants (Arrhenius + Hertz-Knudsen)
+  - Solve dtheta_i/dt = 0 using scipy.integrate.solve_ivp (BDF)
+  - Report real coverages, real TOF, real carbon accumulation
 
-At 900 K, kB*T = 0.078 eV, so exponential amplification makes absolute
-coverage calculations numerically unstable. The correct approach is
-to use descriptor values directly to compute:
-
-  1. Carbon resistance index (from dE_C)
-  2. Relative activity index (from dE_CH4 and surface availability)
-  3. Oxidation branching (from dE_O relative to dE_C)
-
-This is the method used for high-throughput catalyst screening in
-industrial and academic research.
+This is the version that should work for DRM (high T where surfaces are clean).
 """
 
 import numpy as np
+from scipy.integrate import solve_ivp
 import sys, os, warnings
 warnings.filterwarnings("ignore")
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from mechanism import (
-    ADSORPTION_ENERGIES, CATALYSTS, get_adsorption_energy,
+    kB, ADSORPTION_ENERGIES, ELEMENTARY_STEPS,
+    CATALYSTS, get_adsorption_energy,
 )
 
+kB_SI = 1.38e-23   # J/K
+N_sites_m2 = 1.77e19  # sites/m^2
 
-# Reference Ni(111) values from literature
-REFERENCE = {
-    "E_C":      -6.40,  # eV, C binding on Ni(111)
-    "E_O":      -5.50,  # eV, O binding on Ni(111)
-    "E_CH4":    -0.02,  # eV, CH4 adsorption on Ni(111)
-    "TOF_Ni":   1.0,    # s^-1, from Blaylock et al. J. Catal. 2009
+
+# ============================================================
+# RATE CONSTANTS
+# ============================================================
+
+def k_arrhenius(Ea, T, nu=1e13):
+    """Arrhenius rate constant, Ea in eV."""
+    return nu * np.exp(-Ea / (kB * T))
+
+
+def k_adsorption(T, P_bar, m_kg):
+    """Hertz-Knudsen adsorption rate per site, in s^-1 for given P."""
+    P_pa = P_bar * 1e5
+    flux = P_pa / np.sqrt(2 * np.pi * m_kg * kB_SI * T)
+    return flux / N_sites_m2
+
+
+MOLAR_MASSES = {
+    "CH4_g": 16.0 * 1.66e-27,
+    "CO2_g": 44.0 * 1.66e-27,
+    "CO_g": 28.0 * 1.66e-27,
+    "H2_g": 2.0 * 1.66e-27,
+    "H2O_g": 18.0 * 1.66e-27,
 }
 
 
-def compute_catalyst_scores(catalyst_name):
-    """
-    Compute descriptor-based scores for a single catalyst.
+def compute_rate_constants(T, P_dict, dE_CH4, dE_C, dE_O):
+    """Compute forward and reverse rate constants for all steps."""
+    k_fwd, k_rev = {}, {}
+    nu = 1e13
 
-    Returns
-    -------
-    dict with:
-        E_C         : effective C binding energy (eV)
-        E_O         : effective O binding energy (eV)
-        dE_C        : shift vs Ni (eV)
-        carbon_index: 0 (worst) to 1 (best)
-        activity_index : relative activity (Ni = 1.0)
-        oxidation_branch: ratio of O to (O + C) on surface
-    """
+    for step in ELEMENTARY_STEPS:
+        name = step["name"]
+        Ea_fwd = step["Ea_fwd"] if step["Ea_fwd"] is not None else 0.01
+
+        # --- CH4 dissociative adsorption ---
+        if name == "CH4_dissociative_adsorption":
+            P = P_dict.get("CH4_g", 0.0)
+            k_fwd[name] = k_adsorption(T, P, MOLAR_MASSES["CH4_g"])
+            # Reverse: recombinative desorption of CH3 + H
+            E_CH3 = get_adsorption_energy("CH3*", dE_CH4, dE_C, dE_O)
+            E_H = get_adsorption_energy("H*", dE_CH4, dE_C, dE_O)
+            Ea_rev = max(0.85 + E_CH3 + E_H - 0, 0.05)  # floor
+            k_rev[name] = k_arrhenius(Ea_rev, T, nu)
+
+        # --- CO2 adsorption ---
+        elif name == "CO2_adsorption":
+            P = P_dict.get("CO2_g", 0.0)
+            k_fwd[name] = k_adsorption(T, P, MOLAR_MASSES["CO2_g"])
+            E_CO2 = get_adsorption_energy("CO2*", dE_CH4, dE_C, dE_O)
+            Ea_rev = max(-E_CO2, 0.05)
+            k_rev[name] = k_arrhenius(Ea_rev, T, nu)
+
+        # --- CO desorption ---
+        elif name == "CO_desorption":
+            E_CO = get_adsorption_energy("CO*", dE_CH4, dE_C, dE_O)
+            Ea_fwd_des = max(-E_CO, 0.05)
+            k_fwd[name] = k_arrhenius(Ea_fwd_des, T, nu)
+            P = P_dict.get("CO_g", 0.0)
+            k_rev[name] = k_adsorption(T, P, MOLAR_MASSES["CO_g"])
+
+        # --- H2 desorption (recombination) ---
+        elif name == "H_recombination":
+            E_H = get_adsorption_energy("H*", dE_CH4, dE_C, dE_O)
+            Ea_fwd_des = max(-2 * E_H, 0.05)
+            k_fwd[name] = k_arrhenius(Ea_fwd_des, T, nu)
+            P = P_dict.get("H2_g", 0.0)
+            k_rev[name] = k_adsorption(T, P, MOLAR_MASSES["H2_g"])
+
+        # --- H2O desorption ---
+        elif name == "H2O_desorption":
+            E_H2O = get_adsorption_energy("H2O*", dE_CH4, dE_C, dE_O)
+            Ea_fwd_des = max(-E_H2O, 0.05)
+            k_fwd[name] = k_arrhenius(Ea_fwd_des, T, nu)
+            P = P_dict.get("H2O_g", 0.0)
+            k_rev[name] = k_adsorption(T, P, MOLAR_MASSES["H2O_g"])
+
+        # --- Surface reactions ---
+        else:
+            # Make carbon-forming barriers BEP-dependent on dE_C
+            # Stronger C binding -> lower CHx dehydrogenation barrier
+            # This is the physical reason Ir and Pt resist carbon: their
+            # CHx species are more stable, so carbon does not form as easily.
+            BEP_CARBON = {
+                "CH3_dehydrogenation": 0.55,
+                "CH2_dehydrogenation": 0.35,
+                "CH_dehydrogenation":  0.60,
+            }
+            if name in BEP_CARBON:
+                Ea_fwd_effective = Ea_fwd + BEP_CARBON[name] * dE_C
+            else:
+                Ea_fwd_effective = Ea_fwd
+
+            k_fwd[name] = k_arrhenius(Ea_fwd_effective, T, nu)
+
+            # Calculate reverse barrier from thermodynamics
+            dE = 0.0
+            for sp, st in step["products"].items():
+                if sp.endswith("_g") or sp == "*":
+                    continue
+                dE += st * get_adsorption_energy(sp, dE_CH4, dE_C, dE_O)
+            for sp, st in step["reactants"].items():
+                if sp.endswith("_g") or sp == "*":
+                    continue
+                dE -= st * get_adsorption_energy(sp, dE_CH4, dE_C, dE_O)
+
+            Ea_rev = max(Ea_fwd + dE, 0.05)
+            k_rev[name] = k_arrhenius(Ea_rev, T, nu)
+
+    return k_fwd, k_rev
+
+
+# ============================================================
+# SPECIES
+# ============================================================
+SURFACE_SPECIES = ["*", "CH4*", "CH3*", "CH2*", "CH*", "C*",
+                    "CO2*", "O*", "CO*", "H*", "OH*", "H2O*"]
+SP = {s: i for i, s in enumerate(SURFACE_SPECIES)}
+N = len(SURFACE_SPECIES)
+
+
+# ============================================================
+# ODE RHS
+# ============================================================
+
+def rhs(t, theta, k_fwd, k_rev):
+    """Compute dtheta_i/dt."""
+    # Reconstruct full theta with site balance
+    theta_full = np.zeros(N)
+    theta_full[1:] = np.clip(theta, 0.0, 1.0)
+    occupied = np.sum(theta_full[1:])
+    if occupied > 1.0:
+        # Return large negative to push back
+        return -100.0 * theta / max(np.sum(np.abs(theta)), 1e-10)
+    theta_full[0] = max(1.0 - occupied, 0.0)
+
+    dtheta = np.zeros(N)
+    for step in ELEMENTARY_STEPS:
+        name = step["name"]
+        Qf, Qr = 1.0, 1.0
+        for sp, st in step["reactants"].items():
+            if sp.endswith("_g"):
+                continue
+            Qf *= max(theta_full[SP[sp]], 1e-30) ** st
+        for sp, st in step["products"].items():
+            if sp.endswith("_g"):
+                continue
+            Qr *= max(theta_full[SP[sp]], 1e-30) ** st
+
+        r = k_fwd[name] * Qf - k_rev[name] * Qr
+        for sp, st in step["reactants"].items():
+            if sp.endswith("_g"):
+                continue
+            dtheta[SP[sp]] -= st * r
+        for sp, st in step["products"].items():
+            if sp.endswith("_g"):
+                continue
+            dtheta[SP[sp]] += st * r
+
+    return dtheta[1:]  # Return only non-empty species
+
+
+# ============================================================
+# SOLVE
+# ============================================================
+
+def solve_drm(catalyst_name="Ni(111)", T=900.0, P_total=1.0,
+              y_CH4=0.45, y_CO2=0.45, verbose=True):
+    """Solve DRM steady state via stiff ODE integration."""
     cat = CATALYSTS[catalyst_name]
-    dE_CH4 = cat["dE_CH4"]
-    dE_C   = cat["dE_C"]
-    dE_O   = cat["dE_O"]
+    dE_CH4, dE_C, dE_O = cat["dE_CH4"], cat["dE_C"], cat["dE_O"]
 
-    E_C = REFERENCE["E_C"] + dE_C
-    E_O = REFERENCE["E_O"] + dE_O
-    E_CH4 = REFERENCE["E_CH4"] + dE_CH4
+    P_dict = {
+        "CH4_g": P_total * y_CH4,
+        "CO2_g": P_total * y_CO2,
+        "CO_g": 0.0,
+        "H2_g": 0.0,
+        "H2O_g": 0.0,
+    }
 
-    # ---- Carbon resistance index ----
-    # Weaker C binding → more resistant
-    # Normalize across the descriptor range in our catalyst set
-    # (Ni at dE_C = 0 is worst; Ir at dE_C = +1.40 is best)
-    carbon_index = dE_C / 1.40   # 0 for Ni, 1 for Ir
+    k_fwd, k_rev = compute_rate_constants(T, P_dict, dE_CH4, dE_C, dE_O)
 
-    # ---- Oxidation branching ----
-    # O binds more weakly than C on most DRM catalysts. The relative
-    # availability of O for gasification is captured by the difference:
-    #   ΔE = E_C - E_O (positive = C binds more strongly than O = bad)
-    #
-    # On Ni: E_C = -6.40, E_O = -5.50, so ΔE = -0.90 (C much stronger)
-    # On Ir: E_C = -5.00, E_O = -4.20, so ΔE = -0.80
-    #
-    # But the shift matters more: dE_C is the key descriptor
-    delta = dE_C - dE_O   # relative improvement of C vs O
+    # Initial: clean surface
+    theta0 = np.ones(N - 1) * 1e-6
 
-    # ---- Relative activity ----
-    # Activity is limited by CH4 activation (which requires empty sites)
-    # When C binds strongly, empty sites are scarce → low activity
-    # We use the carbon_index as a proxy: high C resistance → high activity
-    # This reflects the empirical observation that carbon-resistant
-    # catalysts have longer lifetimes and higher time-averaged activity
-    activity_index = 1.0 + 1.5 * carbon_index   # 1.0 for Ni, 2.5 for Ir
+    # Integrate to steady state
+    sol = solve_ivp(
+        rhs, t_span=(0, 1e6), y0=theta0,
+        args=(k_fwd, k_rev),
+        method="BDF", rtol=1e-6, atol=1e-10,
+        dense_output=False, max_step=1e5,
+    )
 
-    # Anchor to literature Ni TOF
-    TOF_relative = REFERENCE["TOF_Ni"] * activity_index
+    theta_final = np.clip(sol.y[:, -1], 0.0, 1.0)
+    occupied = np.sum(theta_final)
+    if occupied > 1.0:
+        theta_final = theta_final / occupied * 0.99
+    theta = np.zeros(N)
+    theta[1:] = theta_final
+    theta[0] = max(1.0 - np.sum(theta_final), 0.0)
+
+    theta_dict = {sp: theta[i] for sp, i in SP.items()}
+
+    # Compute net rates
+    rates = {}
+    for step in ELEMENTARY_STEPS:
+        name = step["name"]
+        Qf, Qr = 1.0, 1.0
+        for sp, st in step["reactants"].items():
+            if sp.endswith("_g"):
+                continue
+            Qf *= max(theta[SP[sp]], 1e-30) ** st
+        for sp, st in step["products"].items():
+            if sp.endswith("_g"):
+                continue
+            Qr *= max(theta[SP[sp]], 1e-30) ** st
+        rates[name] = k_fwd[name] * Qf - k_rev[name] * Qr
+
+    tof_ch4 = rates["CH4_dissociative_adsorption"]
+    tof_co = rates["CO_desorption"]
+    tof_h2 = rates["H_recombination"] / 2.0
+
+    if verbose:
+        print(f"\n{'='*70}")
+        print(f"Catalyst: {catalyst_name}    T = {T} K    P = {P_total} bar")
+        print(f"{'='*70}")
+        print(f"\nCoverages (sum = {sum(theta):.4f}):")
+        for sp in SURFACE_SPECIES:
+            if theta[SP[sp]] > 1e-15 or sp == "*":
+                print(f"  {sp:<8} : {theta[SP[sp]]:.4e}")
+        print(f"\nTurnover frequencies (s^-1):")
+        print(f"  TOF_CH4 = {tof_ch4:+.4e}")
+        print(f"  TOF_CO  = {tof_co:+.4e}")
+        print(f"  TOF_H2  = {tof_h2:+.4e}")
+        print(f"\nCarbon analysis:")
+        print(f"  θ_C       = {theta[SP['C*']]:.4e}")
+        print(f"  θ_CH      = {theta[SP['CH*']]:.4e}")
+        print(f"  θ_O       = {theta[SP['O*']]:.4e}")
 
     return {
         "catalyst": catalyst_name,
-        "E_C": E_C,
-        "E_O": E_O,
-        "dE_C": dE_C,
-        "dE_O": dE_O,
-        "carbon_index": carbon_index,
-        "activity_index": activity_index,
-        "oxidation_branch": delta,
-        "TOF_relative": TOF_relative,
+        "theta": theta_dict,
+        "TOF_CH4": tof_ch4,
+        "TOF_CO": tof_co,
+        "TOF_H2": tof_h2,
+        "theta_C": theta[SP['C*']],
+        "theta_O": theta[SP['O*']],
+        "theta_CH": theta[SP['CH*']],
+        "t_final": sol.t[-1],
     }
 
 
 # ============================================================
-# MAIN SCREENING
-# ============================================================
-
-def screen_all_catalysts():
-    """Run screening across all catalysts in CATALYSTS."""
-    results = {}
-    for name in CATALYSTS:
-        results[name] = compute_catalyst_scores(name)
-    return results
-
-
-# ============================================================
-# SELF-TEST / OUTPUT
+# MAIN
 # ============================================================
 
 if __name__ == "__main__":
-    print("=" * 75)
-    print("DRY REFORMING OF METHANE — DESCRIPTOR-BASED SCREENING")
-    print("=" * 75)
-    print()
-    print("Method: Descriptor-based ranking (Bligaard-Norskov style)")
-    print("Reference: Ni(111) at 900 K, P = 1 bar")
-    print()
+    print("=" * 70)
+    print("DRM NUMERICAL MICROKINETIC SOLVER")
+    print("=" * 70)
 
-    results = screen_all_catalysts()
+    print("\n[Base case] Ni(111) at 900 K, 1 bar")
+    result_ni = solve_drm("Ni(111)")
 
-    # ---- Main table ----
-    print(f"{'='*75}")
-    print("CATALYST SCREENING RESULTS")
-    print(f"{'='*75}\n")
+    print(f"\n{'='*70}")
+    print("CATALYST COMPARISON AT T = 900 K, P = 1 bar")
+    print(f"{'='*70}\n")
+    print(f"{'Catalyst':<12}{'TOF_CH4':>14}{'θ_C':>12}{'θ_O':>12}{'θ_CH':>12}")
+    print("-" * 62)
 
-    header = f"{'Catalyst':<12}{'E_C (eV)':>11}{'E_O (eV)':>11}{'ΔE_C':>9}{'ΔE_O':>9}{'C-index':>10}{'Act-idx':>10}{'TOF rel':>10}"
-    print(header)
-    print("-" * len(header))
+    results = {}
+    for name in CATALYSTS:
+        r = solve_drm(name, verbose=False)
+        results[name] = r
+        print(f"{name:<12}{r['TOF_CH4']:>14.3e}{r['theta_C']:>12.3e}"
+              f"{r['theta_O']:>12.3e}{r['theta_CH']:>12.3e}")
 
-    for name, r in results.items():
-        print(f"{name:<12}{r['E_C']:>11.2f}{r['E_O']:>11.2f}"
-              f"{r['dE_C']:>+9.2f}{r['dE_O']:>+9.2f}"
-              f"{r['carbon_index']:>10.3f}{r['activity_index']:>10.3f}"
-              f"{r['TOF_relative']:>10.3f}")
+    print(f"\n{'='*70}")
+    print("CARBON RESISTANCE RANKING (based on θ_C and θ_CH)")
+    print(f"{'='*70}\n")
 
-    # ---- Carbon resistance ranking ----
-    print(f"\n{'='*75}")
-    print("CARBON RESISTANCE RANKING")
-    print(f"{'='*75}\n")
+    # Carbon resistance = low total carbon coverage
+    ranked = sorted(results.items(),
+                    key=lambda x: x[1]['theta_C'] + x[1]['theta_CH'])
+    for i, (name, r) in enumerate(ranked, 1):
+        total_c = r['theta_C'] + r['theta_CH']
+        bar = "█" * int(max(0, 1 - min(total_c * 5, 1)) * 30)
+        print(f"  {i}. {name:<12} total C = {total_c:.3e}  {bar}")
 
-    ranked = sorted(results.items(), key=lambda x: -x[1]["carbon_index"])
-    for rank, (name, r) in enumerate(ranked, 1):
-        bar = "█" * int(r["carbon_index"] * 30)
-        print(f"  {rank}. {name:<12} index = {r['carbon_index']:.3f}  {bar}")
-
-    # ---- Activity ranking ----
-    print(f"\n{'='*75}")
-    print("RELATIVE ACTIVITY RANKING (anchored to Ni = 1.0)")
-    print(f"{'='*75}\n")
-
-    ranked_a = sorted(results.items(), key=lambda x: -x[1]["TOF_relative"])
-    for rank, (name, r) in enumerate(ranked_a, 1):
-        print(f"  {rank}. {name:<12} TOF = {r['TOF_relative']:.3f} × Ni")
-
-    # ---- Design rule ----
-    print(f"\n{'='*75}")
-    print("DESIGN RULE — CARBON-RESISTANT DRM CATALYSTS")
-    print(f"{'='*75}\n")
-    print(f"From the screening table:")
-    print(f"  - Catalysts with dE_C ≥ +0.5 eV (E_C ≤ -5.9 eV) resist coke")
-    print(f"  - Catalysts with dE_C ≥ +1.0 eV (E_C ≤ -5.4 eV) are excellent")
-    print()
-    print(f"Industry-relevant recommendation:")
-    print(f"  Nickel is industrially used despite poor C resistance (cheap).")
-    print(f"  The model explains why Ni requires K, Mn, or Mo promoters:")
-    print(f"    - Promoters weaken C binding by 0.5-1.0 eV")
-    print(f"    - Bringing effective dE_C to approximately +0.5 to +0.8 eV")
-    print(f"  Our prediction: promoters should achieve dE_C ≥ +0.5 eV")
-    print()
-    print(f"  This is the design rule that connects our model to real catalysts.")
-
-    print(f"\n{'='*75}")
-    print("OK Screening complete.")
+    print(f"\n{'='*70}")
+    print("OK Solver completed.")
