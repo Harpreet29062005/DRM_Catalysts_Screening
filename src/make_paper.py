@@ -1,18 +1,20 @@
 """
-Generate DRM paper — FINAL with all typos fixed.
-Fixes applied:
-  - "1,000,000 seconds" written safely (no superscript issues)
-  - "natural log of TOF" written clearly (no 1n/ln confusion)
-  - "Blaylock" spelled correctly everywhere
-  - Table 3 caption: "900 K and 1 bar" (safer phrasing)
-  - All figure captions start with "Figure N."
-  - All headings separated properly
+Generate DRM paper — FINAL with all 6 fixes applied.
+Fixes:
+  1. CatalystGPT removed (graphical abstract regenerated)
+  2. Volcano explanation added in Section 4.2
+  3. Sign convention: E_C >= -5.6 eV (weaker binding)
+  4. Section 3.6 clarified: simplified descriptor-based rate
+  5. Page numbers added to footer
+  6. Page breaks before Tables 2 and 4 to avoid splitting
 """
 
 from docx import Document
 from docx.shared import Pt, Inches, RGBColor
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.enum.table import WD_TABLE_ALIGNMENT
+from docx.oxml.ns import qn
+from docx.oxml import OxmlElement
 import os
 
 output_dir = "docs/report"
@@ -25,6 +27,36 @@ style.font.name = "Times New Roman"
 style.font.size = Pt(11)
 style.paragraph_format.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
 style.paragraph_format.space_after = Pt(6)
+
+
+# ============================================================
+# PAGE NUMBERS IN FOOTER
+# ============================================================
+def add_page_numbers(document):
+    """Add 'Page X' to the footer of the document."""
+    section = document.sections[0]
+    footer = section.footer
+    p = footer.paragraphs[0]
+    p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    run = p.add_run("Page ")
+    run.font.name = "Times New Roman"
+    run.font.size = Pt(9)
+
+    # PAGE field
+    fldChar1 = OxmlElement('w:fldChar')
+    fldChar1.set(qn('w:fldCharType'), 'begin')
+    instrText = OxmlElement('w:instrText')
+    instrText.set(qn('xml:space'), 'preserve')
+    instrText.text = ' PAGE '
+    fldChar2 = OxmlElement('w:fldChar')
+    fldChar2.set(qn('w:fldCharType'), 'end')
+
+    run2 = p.add_run()
+    run2.font.name = "Times New Roman"
+    run2.font.size = Pt(9)
+    run2._r.append(fldChar1)
+    run2._r.append(instrText)
+    run2._r.append(fldChar2)
 
 
 def set_heading(text, level=1):
@@ -98,6 +130,10 @@ def add_figure(path, caption, width=6.0):
         add_paragraph(f"[Missing: {path}]", italic=True)
 
 
+def add_page_break():
+    doc.add_page_break()
+
+
 # ============================================================
 # TITLE PAGE
 # ============================================================
@@ -132,7 +168,7 @@ d.alignment = WD_ALIGN_PARAGRAPH.CENTER
 r = d.add_run("Submitted: November 2026")
 r.italic = True
 
-doc.add_page_break()
+add_page_break()
 
 # ============================================================
 # GRAPHICAL ABSTRACT
@@ -145,7 +181,7 @@ add_figure(
     "plot, catalyst positions, and the derived design rule.",
     width=6.8,
 )
-doc.add_page_break()
+add_page_break()
 
 # ============================================================
 # ABSTRACT
@@ -180,7 +216,7 @@ r.bold = True
 p.add_run("Dry reforming of methane, carbon deposition, numerical microkinetics, "
           "Sabatier volcano, degree of rate control, feed ratio, syngas")
 
-doc.add_page_break()
+add_page_break()
 
 # ============================================================
 # 1. INTRODUCTION
@@ -294,6 +330,12 @@ add_bullet("Python 3.13 - implementation language.")
 add_bullet("NumPy, SciPy - numerical integration and linear algebra.")
 add_bullet("Cantera 3.2 - gas-phase equilibrium and reactor modeling.")
 add_bullet("Matplotlib - figure generation.")
+add_paragraph(
+    "Python/SciPy was chosen for full control over the 14-step mechanism and "
+    "BEP scaling, allowing step-by-step rate-constant customization and "
+    "in-situ sensitivity analysis. Cantera was used only for gas-phase "
+    "equilibrium and for the plug-flow reactor integration."
+)
 
 set_heading("3.2 Numerical Microkinetic Model", level=2)
 add_paragraph(
@@ -392,13 +434,19 @@ add_paragraph(
     "steady-state solver was rerun for all six catalysts."
 )
 
+# ---- Section 3.6 CLARIFIED ----
 set_heading("3.6 Reactor Model", level=2)
 add_paragraph(
     "A 1D plug-flow reactor model was constructed in Cantera. The reactor is "
     "0.5 m long with a 10 cm diameter and a catalyst bed density of "
     "800 kg per cubic meter. The inlet feed is equimolar CH4:CO2 with N2 "
     "balance. Gas-phase equilibrium was computed using the GRI-Mech 3.0 "
-    "mechanism, which has been validated for the CH4/CO2/H2/CO/H2O system."
+    "mechanism, which has been validated for the CH4/CO2/H2/CO/H2O system. "
+    "The reactor rate is evaluated from a simplified descriptor-based DRM "
+    "rate expression derived from the microkinetic model (see reactor_rate.py "
+    "in the repository), not from the full 14-step integration at every "
+    "axial step. This simplification allows efficient axial integration "
+    "while preserving the descriptor dependence of the intrinsic rate."
 )
 
 set_heading("3.7 Data Sources", level=2)
@@ -426,9 +474,12 @@ add_paragraph(
 add_paragraph(
     "Table 2 compares the predicted turnover frequencies with experimentally "
     "reported ranges for all six catalysts. The predicted values fall within "
-    "the experimental ranges in every case, providing quantitative "
-    "validation of the model."
+    "the experimental ranges in every case, providing a consistency check "
+    "against literature."
 )
+
+# Force Table 2 to start on a new page
+add_page_break()
 
 add_table(
     ["Catalyst", "Our predicted TOF (per s)",
@@ -491,6 +542,19 @@ add_paragraph(
     "raising the barriers to carbon formation."
 )
 
+# ---- Volcano explanation added (Fix 2) ----
+add_paragraph(
+    "Figure 1a shows the continuous Sabatier volcano for the DRM rate as a "
+    "function of dE_C and dE_O. The continuous peak is at dE_C = +0.73 eV "
+    "and dE_O = 0 eV. Note that the discrete metals do not sit exactly on "
+    "the volcano peak because each catalyst has its own dE_O value that "
+    "shifts it along the second descriptor axis. In particular, Rh(111) "
+    "lies at dE_C = +1.00 eV with a small dE_O shift, which places it at "
+    "the highest intrinsic activity among the six metals even though the "
+    "continuous volcano maximum is at +0.73 eV. This is expected behavior "
+    "in a two-descriptor Sabatier analysis."
+)
+
 add_figure(
     "results/figures/volcano_v2.png",
     "Figure 1. (a) DRM activity volcano plot showing the Sabatier optimum at "
@@ -504,9 +568,9 @@ add_paragraph(
     "The total carbon coverage (theta_C + theta_CH) decreases by over two "
     "orders of magnitude as dE_C shifts from 0.0 eV (Ni) to +1.4 eV (Ir). A "
     "practical threshold for long-term stability corresponds to total carbon "
-    "coverage below 1e-2 monolayer, which is crossed at dE_C = +0.8 eV, "
-    "equivalent to a carbon binding energy weaker than approximately "
-    "-5.6 eV."
+    "coverage below 1e-2 monolayer, which is crossed at dE_C = +0.8 eV. "
+    "This is equivalent to a carbon binding energy that is less negative "
+    "than -5.6 eV (i.e., E_C > -5.6 eV, or weaker binding than -5.6 eV)."
 )
 add_paragraph(
     "This design rule provides a quantitative basis for catalyst selection "
@@ -577,6 +641,7 @@ add_figure(
     width=6.5,
 )
 
+# ---- Section 4.7 (DRC) BEFORE 4.8 (Feed Ratio) - confirmed order ----
 set_heading("4.7 Degree of Rate Control Analysis", level=2)
 add_paragraph(
     "The degree of rate control (DRC) of every elementary step was computed "
@@ -590,8 +655,9 @@ add_paragraph(
 add_paragraph(
     "The sum of all DRC values was computed for each catalyst. Campbell's "
     "theorem requires this sum to equal 1.0. The computed values range from "
-    "0.96 to 1.06, confirming the internal consistency of the mechanism and "
-    "of the numerical solution."
+    "0.96 to 1.06. This small deviation from unity reflects the finite "
+    "precision of the numerical steady-state solve and the +0.05 eV "
+    "perturbation step, not a physical inconsistency."
 )
 
 add_figure(
@@ -650,6 +716,9 @@ add_paragraph(
     "band, confirming that the predicted ordering is not an artifact of DFT "
     "error."
 )
+
+# Force Table 4 to start on a new page
+add_page_break()
 
 add_table(
     ["Catalyst", "Mean TOF (per s)", "Std (per s)",
@@ -710,7 +779,8 @@ add_paragraph(
     "selectivity. On Pt, Rh, and Ir, the carbon formation pathway is "
     "already strongly suppressed, and further selectivity improvements "
     "require modification of the CH binding energy rather than the oxygen "
-    "supply."
+    "supply. These are model-based hypotheses that would require "
+    "experimental validation before being treated as universal design rules."
 )
 
 add_table(
@@ -796,7 +866,7 @@ add_paragraph(
     "analysis, degree-of-rate-control analysis, and reactor/feed-ratio "
     "studies together provide the following design rules:"
 )
-add_bullet("Carbon binding energy weaker than -5.6 eV (equivalently "
+add_bullet("Carbon binding energy less negative than -5.6 eV (equivalently "
            "dE_C >= +0.8 eV relative to Ni) is necessary for long-term "
            "carbon resistance.")
 add_bullet("The optimum carbon binding energy for maximum activity is "
@@ -849,7 +919,7 @@ add_bullet("Degree of selectivity control analysis shows that Ni and Co "
            "control selectivity through CH/C oxidation, while Pt, Rh, and "
            "Ir control it through CH dehydrogenation.")
 add_bullet("A quantitative design rule is derived: catalysts with carbon "
-           "binding weaker than -5.6 eV resist coke formation.")
+           "binding less negative than -5.6 eV resist coke formation.")
 add_bullet("A Sabatier volcano plot identifies the optimum binding energy "
            "at dE_C = +0.73 eV.")
 
@@ -879,8 +949,12 @@ add_bullet("Sticking coefficients: a value of 1.0 was used for all "
            "relative ranking.")
 add_bullet("BEP coefficients: values were taken from the literature range "
            "and not independently fit.")
-add_bullet("No experimental validation of the derived design rule; the "
-           "comparison in Table 2 is limited to published TOF ranges.")
+add_bullet("The comparisons in Table 2 are consistency checks against "
+           "published TOF ranges, not independent experimental validation "
+           "of the complete mechanism.")
+add_bullet("The 20-30 sample sizes in the Monte Carlo and prefactor "
+           "analyses are sufficient for ensemble statistics but may "
+           "under-sample the tails of the uncertainty distribution.")
 add_bullet("GRI-Mech 3.0 equilibrium: while validated for the "
            "CH4/CO2/H2 system, it is a combustion mechanism and could "
            "introduce small errors in equilibrium compositions near "
@@ -889,7 +963,7 @@ add_bullet("GRI-Mech 3.0 equilibrium: while validated for the "
 # ============================================================
 # 7. REFERENCES
 # ============================================================
-doc.add_page_break()
+add_page_break()
 set_heading("7. References", level=1)
 
 refs = [
@@ -921,6 +995,13 @@ refs = [
     "Ni-based catalysts. Appl. Catal. B, 197, 168-183.",
     "Fan, M.-S., Abdullah, A. Z., & Bhatia, S. (2009). Catalytic technology "
     "for carbon dioxide reforming of methane. ChemCatChem, 1(2), 192-208.",
+    "Aramouni, N. A. K., Touma, J. G., Tarboush, B. A., Zeaiter, J., & "
+    "Ahmad, M. N. (2018). Catalyst design for dry reforming of methane: "
+    "Analysis review. Renewable and Sustainable Energy Reviews, 82, "
+    "2570-2585.",
+    "Usman, M., Daud, W. M. A. W., & Abbas, H. F. (2015). Dry reforming of "
+    "methane: Influence of process parameters - A review. Renewable and "
+    "Sustainable Energy Reviews, 45, 710-744.",
 ]
 
 for i, ref in enumerate(refs, 1):
@@ -930,9 +1011,15 @@ for i, ref in enumerate(refs, 1):
     p.add_run(f"[{i}] {ref}")
 
 # ============================================================
+# ADD PAGE NUMBERS BEFORE SAVING
+# ============================================================
+add_page_numbers(doc)
+
 doc.save(output_path)
 print(f"\nDocument created: {output_path}")
 print(f"Paragraphs: {len(doc.paragraphs)}   Tables: {len(doc.tables)}")
+print(f"References: {len(refs)}")
+print(f"Page numbers: added to footer")
 print(f"\nGraphical abstract + 9 figures:")
 print(f"  Graphical abstract: {'OK' if os.path.exists('results/figures/graphical_abstract.png') else 'MISSING'}")
 for n, f in [(1, "results/figures/volcano_v2.png"),

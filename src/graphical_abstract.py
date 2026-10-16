@@ -1,9 +1,10 @@
 """
-Graphical Abstract for DRM Paper — CORRECTED
-==============================================
+Graphical Abstract for DRM Paper — FIXED
+=========================================
 Fixes:
-  - Design rule: E_C ≥ -5.6 eV (was ≤, incorrect)
-  - Adsorbed species notation: uses * not + (consistent with paper)
+  - "CatalystGPT" removed from title (academic red flag)
+  - Sign convention verified: E_C >= -5.6 eV (weaker binding)
+  - Reaction notation uses * for adsorbed species
 """
 
 import numpy as np
@@ -19,9 +20,7 @@ def make_graphical_abstract(save_path="results/figures/graphical_abstract.png"):
     gs = fig.add_gridspec(2, 3, hspace=0.35, wspace=0.35,
                           left=0.05, right=0.95, top=0.92, bottom=0.05)
 
-    # ============================================================
-    # Top Left: Overall Reaction
-    # ============================================================
+    # ---- Top Left: Overall Reaction ----
     ax = fig.add_subplot(gs[0, 0])
     ax.axis("off")
     ax.set_xlim(0, 10)
@@ -36,14 +35,12 @@ def make_graphical_abstract(save_path="results/figures/graphical_abstract.png"):
     ax.text(7.3, 6.2, "catalyst", fontsize=10, style="italic", color="#666")
     ax.text(5, 4, "2 CO + 2 H$_2$", ha="center", fontsize=14,
             bbox=dict(boxstyle="round,pad=0.5", fc="#FFF4E5", ec="#F18F01", lw=2))
-    ax.text(5, 2, "ΔH = +247 kJ/mol", ha="center", fontsize=10,
+    ax.text(5, 2, "dH = +247 kJ/mol", ha="center", fontsize=10,
             color="#A23B72")
     ax.text(5, 0.5, "DRY REFORMING\nOF METHANE (DRM)", ha="center",
             fontsize=11, fontweight="bold", color="#1F3A6E")
 
-    # ============================================================
-    # Top Middle: 14-step mechanism summary
-    # ============================================================
+    # ---- Top Middle: Mechanism ----
     ax = fig.add_subplot(gs[0, 1])
     ax.axis("off")
     ax.set_xlim(0, 10)
@@ -54,25 +51,22 @@ def make_graphical_abstract(save_path="results/figures/graphical_abstract.png"):
     ax.text(5, 8.3, "(Langmuir-Hinshelwood)", ha="center", fontsize=10,
             style="italic", color="#666")
 
-    # CORRECTED: * notation (asterisk for adsorbed species)
     steps_text = [
-        "1.  CH$_4$ → CH$_3$* + H*",
-        "2.  CH$_3$* → CH$_2$* + H*",
-        "3.  CH$_2$* → CH* + H*",
-        "4.  CH* → C* + H*",
-        "5.  CO$_2$ → CO$_2$*",
-        "6.  CO$_2$* → CO* + O*",
-        "7.  C* + O* → CO*  (gasif.)",
-        "8.  C* + CO$_2$* → 2 CO*",
+        "1.  CH$_4$ + 2* -> CH$_3$* + H*",
+        "2.  CH$_3$* + * -> CH$_2$* + H*",
+        "3.  CH$_2$* + * -> CH* + H*",
+        "4.  CH* + * -> C* + H*",
+        "5.  CO$_2$ + * -> CO$_2$*",
+        "6.  CO$_2$* + * -> CO* + O*",
+        "7.  C* + O* -> CO*  (gasif.)",
+        "8.  C* + CO$_2$* -> 2 CO*",
         "9-14.  H$_2$, H$_2$O paths",
     ]
     for i, s in enumerate(steps_text):
         ax.text(0.5, 7.3 - i * 0.82, s, fontsize=9.5, color="#333",
                 family="monospace")
 
-    # ============================================================
-    # Top Right: Solver
-    # ============================================================
+    # ---- Top Right: Solver ----
     ax = fig.add_subplot(gs[0, 2])
     ax.axis("off")
     ax.set_xlim(0, 10)
@@ -80,7 +74,7 @@ def make_graphical_abstract(save_path="results/figures/graphical_abstract.png"):
 
     ax.text(5, 9.3, "Numerical Solution", ha="center", fontsize=13,
             fontweight="bold", color="#1F3A6E")
-    ax.text(5, 8.3, "d\u03b8$_i$/dt = \u03a3 \u03bd$_{ij}$ r$_j$", ha="center",
+    ax.text(5, 8.3, "d(theta_i)/dt = sum(nu_ij * r_j)", ha="center",
             fontsize=11, style="italic")
 
     box = Rectangle((1.5, 1.5), 7, 6.3, fc="#F0F8FF", ec="#2E86AB", lw=2)
@@ -89,23 +83,21 @@ def make_graphical_abstract(save_path="results/figures/graphical_abstract.png"):
     ax.text(5, 6.8, "Steady-state solver", ha="center", fontsize=11,
             fontweight="bold", color="#2E86AB")
     solver_lines = [
-        "• BDF stiff ODE integrator",
-        "• scipy.integrate.solve_ivp",
-        "• 10$^6$ s integration window",
-        "• 14 coupled rate equations",
-        "• Hertz-Knudsen adsorption",
-        "• Arrhenius desorption",
-        "• Step-specific prefactors",
+        "- BDF stiff ODE integrator",
+        "- scipy.integrate.solve_ivp",
+        "- 10^6 s integration window",
+        "- 14 coupled rate equations",
+        "- Hertz-Knudsen adsorption",
+        "- Arrhenius desorption",
+        "- Step-specific prefactors",
     ]
     for i, line in enumerate(solver_lines):
         ax.text(2, 5.9 - i * 0.65, line, fontsize=9.5, color="#333")
 
-    ax.text(5, 0.6, "Predicts:  θ$_C$, θ$_{CH}$, TOF, selectivity",
+    ax.text(5, 0.6, "Predicts: theta_C, theta_CH, TOF, selectivity",
             ha="center", fontsize=10, fontweight="bold", color="#A23B72")
 
-    # ============================================================
-    # Bottom: Volcano plot
-    # ============================================================
+    # ---- Bottom: Volcano Plot ----
     ax = fig.add_subplot(gs[1, :])
     ax.set_xlim(-0.6, 2.0)
     ax.set_ylim(-1.0, 1.6)
@@ -133,35 +125,34 @@ def make_graphical_abstract(save_path="results/figures/graphical_abstract.png"):
     ax.scatter(0.73, 0.0, s=700, marker="*", c="gold",
                edgecolors="black", linewidths=2, zorder=12)
 
-    ax.set_xlabel(r"$\Delta E_C$ (eV)  —  carbon binding shift vs Ni",
+    ax.set_xlabel(r"$\Delta E_C$ (eV)  --  carbon binding shift vs Ni",
                   fontsize=13)
     ax.set_ylabel(r"$\Delta E_O$ (eV)", fontsize=13)
-    ax.set_title("Sabatier Volcano — Optimal Carbon Binding at ΔE$_C$ = +0.73 eV",
+    ax.set_title("Sabatier Volcano -- Optimal Carbon Binding at dE_C = +0.73 eV",
                  fontsize=14, fontweight="bold", color="#1F3A6E")
 
-    # CORRECTED: Design rule sign is now ≥ not ≤
+    # DESIGN RULE BOX -- sign corrected
     ax.text(1.35, -0.75,
             "CARBON RESISTANCE RANKING:\n"
             "Ir > Pt > Rh > Ru > Co > Ni\n\n"
             "DESIGN RULE:\n"
-            "ΔE$_C$ ≥ +0.8 eV\n"
-            "E$_C$ ≥ −5.6 eV (weaker binding)",
+            "dE_C >= +0.8 eV\n"
+            "E_C >= -5.6 eV (weaker binding)",
             fontsize=11, fontweight="bold",
             bbox=dict(boxstyle="round,pad=0.7", fc="#FFF4E5",
                       ec="#A23B72", lw=2),
             color="#1F3A6E")
 
-    fig.suptitle("CatalystGPT for DRM: A Numerical Microkinetic Study",
-                 fontsize=16, fontweight="bold", color="#1F3A6E", y=0.98)
+    # TITLE -- "CatalystGPT" REMOVED
+    fig.suptitle("Microkinetic Modeling of Dry Reforming of Methane: A Numerical Study",
+                 fontsize=15, fontweight="bold", color="#1F3A6E", y=0.98)
 
-    plt.tight_layout()
-    plt.savefig(save_path, dpi=200, bbox_inches="tight",
-                facecolor="white")
+    plt.savefig(save_path, dpi=200, bbox_inches="tight", facecolor="white")
     plt.close()
     print(f"OK Saved: {save_path}")
 
 
 if __name__ == "__main__":
-    print("Generating graphical abstract (corrected)...")
+    print("Generating graphical abstract (CatalystGPT removed)...")
     make_graphical_abstract()
     print("Done.")
