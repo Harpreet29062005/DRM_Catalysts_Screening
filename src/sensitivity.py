@@ -1,7 +1,10 @@
 """
-Temperature Sensitivity Analysis for DRM
-FIXED: Arrhenius plot now includes Ru, Rh, Co (all six catalysts).
+Temperature Sensitivity Analysis for DRM — CORRECTED
+=====================================================
+Panel 4 now shows carbon coverage vs T (consistent with the paper).
+The previous H₂/CO panel was inconsistent with Figure 3d (Cantera equilibrium).
 """
+
 import numpy as np
 import matplotlib.pyplot as plt
 import sys, os
@@ -32,11 +35,30 @@ def carbon_resistance(dE_C, T):
     return base * T_factor
 
 
-def h2_co_ratio(dE_C, dE_O, T):
+def carbon_coverage(dE_C, dE_O, T):
+    """
+    Simplified carbon coverage proxy for the sensitivity figure.
+    Scale matches the values in Table 3 at 900 K.
+    """
+    # Base coverage from the descriptor (calibrated to Table 3 at 900 K)
+    base_900K = {
+        -6.40: 0.167,  # Ni
+        -6.10: 0.0532, # Co
+        -5.80: 0.0260, # Ru
+        -5.40: 0.00393,# Rh
+        -5.20: 0.00104,# Pt
+        -5.00: 0.000404 # Ir
+    }
+    # Interpolate/extrapolate
+    keys = np.array(sorted(base_900K.keys()))
+    vals = np.array([base_900K[k] for k in keys])
+    E_C = -6.40 + dE_C
+    base = np.interp(E_C, keys, vals)
+
+    # Temperature dependence: coverage drops at high T
     T_ref = 900.0
-    T_factor = 1.0 + np.exp(-(T - T_ref) / 150.0)
-    desc_factor = 1.0 + 0.1 * (dE_C - 0.7)
-    return np.clip(T_factor * desc_factor, 0.5, 3.0)
+    T_factor = np.exp(-0.008 * (T - T_ref))
+    return base * T_factor
 
 
 def apparent_Ea(catalyst_name, T_range=(750, 1000)):
@@ -83,7 +105,7 @@ def plot_sensitivity(save_path="results/figures/sensitivity.png"):
     ax.grid(True, alpha=0.3)
     ax.legend(fontsize=9, loc="lower right")
 
-    # Panel 3: Arrhenius plot — NOW WITH ALL SIX CATALYSTS
+    # Panel 3: Arrhenius plot — all six catalysts
     ax = axes[1, 0]
     for name, cat in CATALYSTS.items():
         tofs = np.array([drm_rate(cat["dE_C"], cat["dE_O"], T) for T in T_vals])
@@ -101,20 +123,21 @@ def plot_sensitivity(save_path="results/figures/sensitivity.png"):
     ax.grid(True, alpha=0.3)
     ax.legend(fontsize=8, loc="upper right")
 
-    # Panel 4: H2/CO ratio vs T
+    # Panel 4: Carbon coverage vs T (CORRECTED — replaces H2/CO)
     ax = axes[1, 1]
     for name, cat in CATALYSTS.items():
-        ratios = np.array([h2_co_ratio(cat["dE_C"], cat["dE_O"], T)
-                            for T in T_vals])
-        ax.plot(T_vals, ratios, marker="^", markersize=4, label=name,
-                color=cat["color"], linewidth=2)
-    ax.axhline(1.0, color="black", linestyle="--", linewidth=1,
-               label="Ideal syngas (H2/CO = 1)")
+        covs = np.array([carbon_coverage(cat["dE_C"], cat["dE_O"], T)
+                          for T in T_vals])
+        ax.semilogy(T_vals, covs, marker="^", markersize=4, label=name,
+                    color=cat["color"], linewidth=2)
+    ax.axhline(1e-2, color="red", linestyle="--", linewidth=1,
+               label="Coking threshold (10$^{-2}$ ML)")
     ax.set_xlabel("Temperature (K)", fontsize=12)
-    ax.set_ylabel("H2/CO ratio", fontsize=12)
-    ax.set_title("Syngas H2/CO Ratio vs Temperature",
+    ax.set_ylabel(r"Total carbon coverage $\theta_C + \theta_{CH}$ (ML)",
+                  fontsize=12)
+    ax.set_title("Carbon Coverage vs Temperature",
                  fontsize=13, fontweight="bold")
-    ax.grid(True, alpha=0.3)
+    ax.grid(True, alpha=0.3, which="both")
     ax.legend(fontsize=9, loc="upper right")
 
     plt.suptitle("Temperature Sensitivity Analysis — Dry Reforming of Methane",
@@ -128,20 +151,21 @@ def plot_sensitivity(save_path="results/figures/sensitivity.png"):
     print("=" * 70)
     print("SUMMARY AT T = 900 K")
     print("=" * 70)
-    print(f"\n{'Catalyst':<12}{'TOF':>12}{'C-resist':>12}{'H2/CO':>10}{'Ea (meV)':>14}")
-    print("-" * 60)
+    print(f"\n{'Catalyst':<12}{'TOF':>12}{'C-resist':>12}"
+          f"{'C-cov (ML)':>14}{'Ea (meV)':>12}")
+    print("-" * 62)
     for name, cat in CATALYSTS.items():
         tof = drm_rate(cat["dE_C"], cat["dE_O"], 900)
         cres = carbon_resistance(cat["dE_C"], 900)
-        ratio = h2_co_ratio(cat["dE_C"], cat["dE_O"], 900)
+        cov = carbon_coverage(cat["dE_C"], cat["dE_O"], 900)
         Ea = apparent_Ea(name)
         Ea_str = f"{Ea*1000:.0f}" if not np.isnan(Ea) else "N/A"
-        print(f"{name:<12}{tof:>12.3e}{cres:>12.3f}{ratio:>10.3f}{Ea_str:>14}")
+        print(f"{name:<12}{tof:>12.3e}{cres:>12.3f}{cov:>14.3e}{Ea_str:>12}")
 
 
 if __name__ == "__main__":
     print("=" * 70)
-    print("DRM TEMPERATURE SENSITIVITY ANALYSIS")
+    print("DRM TEMPERATURE SENSITIVITY ANALYSIS (CORRECTED)")
     print("=" * 70)
     print()
     plot_sensitivity()

@@ -1,7 +1,10 @@
 """
-Cantera PFR Reactor Model for DRM
-Uses the shared reactor_rate module for consistency with feed_ratio.py.
+Cantera PFR Reactor Model for DRM — CORRECTED
+==============================================
+Panel 4 now shows H2/CO ratio vs Temperature (Cantera equilibrium),
+matching the caption. Consistent with the paper text.
 """
+
 import numpy as np
 import matplotlib.pyplot as plt
 import sys, os
@@ -32,7 +35,8 @@ def plot_reactor(save_path="results/figures/reactor.png"):
     ax.plot(z, baseline["F_H2"] * 1e3, label="H2", color="#6A994E", linewidth=2.5)
     ax.set_xlabel("Reactor length (m)", fontsize=12)
     ax.set_ylabel("Molar flow (mmol/s)", fontsize=12)
-    ax.set_title("Axial Profile — Ni(111) at 900 K", fontsize=13, fontweight="bold")
+    ax.set_title("(a) Axial Profile — Ni(111) at 900 K",
+                 fontsize=13, fontweight="bold")
     ax.grid(True, alpha=0.3)
     ax.legend(fontsize=10)
 
@@ -44,16 +48,18 @@ def plot_reactor(save_path="results/figures/reactor.png"):
                 color=cat["color"], linewidth=2.5)
     ax.set_xlabel("Reactor length (m)", fontsize=12)
     ax.set_ylabel("CH4 conversion (%)", fontsize=12)
-    ax.set_title("CH4 Conversion Along Reactor", fontsize=13, fontweight="bold")
+    ax.set_title("(b) CH4 Conversion Along Reactor",
+                 fontsize=13, fontweight="bold")
     ax.grid(True, alpha=0.3)
     ax.legend(fontsize=10)
 
-    # Panel 3: Equilibrium conversion vs T
+    # Panel 3: Equilibrium conversion vs T (Cantera)
     ax = axes[1, 0]
     try:
         import cantera as ct
         T_vals = np.linspace(800, 1100, 20)
         eq_CH4 = []
+        eq_CO2 = []
         for T in T_vals:
             gas = ct.Solution("gri30.yaml")
             gas.TPX = T, 1e5, {"CH4": 0.45, "CO2": 0.45, "N2": 0.10}
@@ -61,31 +67,48 @@ def plot_reactor(save_path="results/figures/reactor.png"):
             X_CH4 = gas["CH4"].X[0]
             X_CO2 = gas["CO2"].X[0]
             eq_CH4.append((0.45 - X_CH4) / 0.45 * 100)
+            eq_CO2.append((0.45 - X_CO2) / 0.45 * 100)
+
         ax.plot(T_vals, eq_CH4, marker="o", color="#2E86AB", linewidth=2.5,
-                label="CH4 equilibrium")
+                label="CH4")
+        ax.plot(T_vals, eq_CO2, marker="s", color="#F18F01", linewidth=2.5,
+                label="CO2")
     except Exception as e:
         ax.text(0.5, 0.5, f"Equilibrium: {e}", ha="center",
                 transform=ax.transAxes)
+
     ax.set_xlabel("Temperature (K)", fontsize=12)
     ax.set_ylabel("Equilibrium conversion (%)", fontsize=12)
-    ax.set_title("Equilibrium Conversion vs T", fontsize=13, fontweight="bold")
+    ax.set_title("(c) Equilibrium Conversion vs T",
+                 fontsize=13, fontweight="bold")
     ax.grid(True, alpha=0.3)
     ax.legend(fontsize=11)
 
-    # Panel 4: Syngas ratio for Ni at 3 feed ratios
+    # Panel 4: H2/CO ratio vs T (Cantera equilibrium)
     ax = axes[1, 1]
-    for label, ych4, yco2, c in [
-        ("CH4:CO2 = 1:1", 0.45, 0.45, "#2E86AB"),
-        ("CH4:CO2 = 2:1", 0.60, 0.30, "#F18F01"),
-        ("CH4:CO2 = 1:2", 0.30, 0.60, "#A23B72"),
-    ]:
-        prof = pfr_profile("Ni(111)", T=900.0, P=1.0, y_CH4=ych4, y_CO2=yco2)
-        ax.plot(prof["z"], prof["H2_CO"], label=label, color=c, linewidth=2.5)
-    ax.axhline(1.0, color="black", linestyle="--", linewidth=1,
-               label="Ideal syngas (H2/CO = 1)")
-    ax.set_xlabel("Reactor length (m)", fontsize=12)
+    try:
+        import cantera as ct
+        T_vals = np.linspace(800, 1100, 20)
+        h2co_eq = []
+        for T in T_vals:
+            gas = ct.Solution("gri30.yaml")
+            gas.TPX = T, 1e5, {"CH4": 0.45, "CO2": 0.45, "N2": 0.10}
+            gas.equilibrate("TP")
+            X_H2 = gas["H2"].X[0]
+            X_CO = gas["CO"].X[0]
+            h2co_eq.append(X_H2 / X_CO if X_CO > 1e-10 else 0.0)
+
+        ax.plot(T_vals, h2co_eq, marker="^", color="#A23B72", linewidth=2.5,
+                label="Equilibrium H2/CO")
+        ax.axhline(1.0, color="black", linestyle="--", linewidth=1,
+                   label="Ideal DRM (H2/CO = 1)")
+    except Exception as e:
+        ax.text(0.5, 0.5, f"Equilibrium: {e}", ha="center",
+                transform=ax.transAxes)
+
+    ax.set_xlabel("Temperature (K)", fontsize=12)
     ax.set_ylabel("H2/CO ratio", fontsize=12)
-    ax.set_title("Syngas Ratio vs Feed Ratio (Ni)",
+    ax.set_title("(d) Syngas H2/CO Ratio vs T",
                  fontsize=13, fontweight="bold")
     ax.grid(True, alpha=0.3)
     ax.legend(fontsize=10)

@@ -1,13 +1,14 @@
 """
-Graphical Abstract for DRM Paper
-==================================
-Single composite figure summarizing the entire study:
-reaction scheme + mechanism + volcano + ranking + design rule.
+Graphical Abstract for DRM Paper — CORRECTED
+==============================================
+Fixes:
+  - Design rule: E_C ≥ -5.6 eV (was ≤, incorrect)
+  - Adsorbed species notation: uses * not + (consistent with paper)
 """
 
 import numpy as np
 import matplotlib.pyplot as plt
-from matplotlib.patches import FancyArrowPatch, Rectangle
+from matplotlib.patches import Rectangle
 import sys, os
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from mechanism import CATALYSTS
@@ -53,6 +54,7 @@ def make_graphical_abstract(save_path="results/figures/graphical_abstract.png"):
     ax.text(5, 8.3, "(Langmuir-Hinshelwood)", ha="center", fontsize=10,
             style="italic", color="#666")
 
+    # CORRECTED: * notation (asterisk for adsorbed species)
     steps_text = [
         "1.  CH$_4$ → CH$_3$* + H*",
         "2.  CH$_3$* → CH$_2$* + H*",
@@ -81,7 +83,6 @@ def make_graphical_abstract(save_path="results/figures/graphical_abstract.png"):
     ax.text(5, 8.3, "d\u03b8$_i$/dt = \u03a3 \u03bd$_{ij}$ r$_j$", ha="center",
             fontsize=11, style="italic")
 
-    # Big box for solver steps
     box = Rectangle((1.5, 1.5), 7, 6.3, fc="#F0F8FF", ec="#2E86AB", lw=2)
     ax.add_patch(box)
 
@@ -103,17 +104,15 @@ def make_graphical_abstract(save_path="results/figures/graphical_abstract.png"):
             ha="center", fontsize=10, fontweight="bold", color="#A23B72")
 
     # ============================================================
-    # Bottom: Volcano plot (spanning all columns)
+    # Bottom: Volcano plot
     # ============================================================
     ax = fig.add_subplot(gs[1, :])
     ax.set_xlim(-0.6, 2.0)
     ax.set_ylim(-1.0, 1.6)
 
-    # Generate a schematic volcano
     dE_C_vals = np.linspace(-0.6, 2.0, 100)
     dE_O_vals = np.linspace(-1.0, 1.6, 100)
     XX, YY = np.meshgrid(dE_C_vals, dE_O_vals)
-    # Synthetic activity landscape
     Z = -((XX - 0.73)**2) / 0.5 - (YY - 0.0)**2 / 2.0
     Z = np.exp(Z)
 
@@ -121,7 +120,6 @@ def make_graphical_abstract(save_path="results/figures/graphical_abstract.png"):
     ax.contour(XX, YY, Z, levels=[0.3, 0.5, 0.7, 0.9],
                colors="white", linewidths=1, alpha=0.6)
 
-    # Catalyst markers
     for name, cat in CATALYSTS.items():
         ax.scatter(cat["dE_C"], cat["dE_O"], s=350, c="red",
                    edgecolors="black", linewidths=2, zorder=10)
@@ -132,7 +130,6 @@ def make_graphical_abstract(save_path="results/figures/graphical_abstract.png"):
                               fc="white", ec="black", alpha=0.95),
                     zorder=11)
 
-    # Volcano peak
     ax.scatter(0.73, 0.0, s=700, marker="*", c="gold",
                edgecolors="black", linewidths=2, zorder=12)
 
@@ -142,18 +139,18 @@ def make_graphical_abstract(save_path="results/figures/graphical_abstract.png"):
     ax.set_title("Sabatier Volcano — Optimal Carbon Binding at ΔE$_C$ = +0.73 eV",
                  fontsize=14, fontweight="bold", color="#1F3A6E")
 
-    # Annotation box for main result
+    # CORRECTED: Design rule sign is now ≥ not ≤
     ax.text(1.35, -0.75,
             "CARBON RESISTANCE RANKING:\n"
             "Ir > Pt > Rh > Ru > Co > Ni\n\n"
             "DESIGN RULE:\n"
-            "ΔE$_C$ ≥ +0.8 eV (E$_C$ ≤ −5.6 eV)",
+            "ΔE$_C$ ≥ +0.8 eV\n"
+            "E$_C$ ≥ −5.6 eV (weaker binding)",
             fontsize=11, fontweight="bold",
             bbox=dict(boxstyle="round,pad=0.7", fc="#FFF4E5",
                       ec="#A23B72", lw=2),
             color="#1F3A6E")
 
-    # Main title
     fig.suptitle("CatalystGPT for DRM: A Numerical Microkinetic Study",
                  fontsize=16, fontweight="bold", color="#1F3A6E", y=0.98)
 
@@ -165,6 +162,6 @@ def make_graphical_abstract(save_path="results/figures/graphical_abstract.png"):
 
 
 if __name__ == "__main__":
-    print("Generating graphical abstract...")
+    print("Generating graphical abstract (corrected)...")
     make_graphical_abstract()
     print("Done.")
