@@ -1,13 +1,12 @@
 """
-Generate DRM paper — FINAL CORRECTED VERSION (Fix A5 applied).
-Fixes:
-  - Wang 2013 (not 2009) in Table 1 and References
-  - Carbon risk index replaced with actual carbon coverage
-  - Time span "10^6 seconds" (was rendering as "10s")
-  - Section 4.5 conversions corrected to match Figure 3b
-  - No duplicate headings
-  - Graphical abstract included
-  - volcano_v2.png used (threshold +0.8 eV)
+Generate DRM paper — FINAL with all typos fixed.
+Fixes applied:
+  - "1,000,000 seconds" written safely (no superscript issues)
+  - "natural log of TOF" written clearly (no 1n/ln confusion)
+  - "Blaylock" spelled correctly everywhere
+  - Table 3 caption: "900 K and 1 bar" (safer phrasing)
+  - All figure captions start with "Figure N."
+  - All headings separated properly
 """
 
 from docx import Document
@@ -153,13 +152,13 @@ doc.add_page_break()
 # ============================================================
 set_heading("Abstract", level=1)
 add_paragraph(
-    "Dry reforming of methane (DRM, CH\u2084 + CO\u2082 \u2192 2 CO + 2 H\u2082) converts two "
+    "Dry reforming of methane (DRM, CH4 + CO2 -> 2 CO + 2 H2) converts two "
     "greenhouse gases into syngas. Carbon deposition remains the principal "
     "obstacle to industrial deployment of nickel-based DRM catalysts. In this "
     "work, a numerical microkinetic model based on a 14-step elementary "
     "mechanism was developed and solved to steady state using stiff ODE "
     "integration. Adsorption energies and activation barriers were taken "
-    "from published DFT studies, with Br\u00f8nsted-Evans-Polanyi scaling for "
+    "from published DFT studies, with Bronsted-Evans-Polanyi scaling for "
     "the carbon-forming steps. Steady-state surface coverages and turnover "
     "frequencies were computed for six transition metals (Ni, Co, Ru, Rh, "
     "Pt, Ir) at 900 K and 1 bar. The model reproduces the experimentally "
@@ -168,11 +167,11 @@ add_paragraph(
     "without any post-hoc adjustment. A systematic robustness analysis "
     "across 19 conditions confirmed the ranking is stable. A Sabatier "
     "volcano plot identifies the optimum carbon binding energy at "
-    "\u0394E_C = +0.73 eV. Degree of rate control analysis shows that CO "
+    "dE_C = +0.73 eV. Degree of rate control analysis shows that CO "
     "desorption is the rate-determining step on all six catalysts. Monte "
     "Carlo uncertainty quantification and prefactor sensitivity analysis "
     "confirm the ranking at the ensemble level. A Cantera plug-flow reactor "
-    "model and feed-ratio study show that CO\u2082-rich feeds reduce carbon risk."
+    "model and feed-ratio study show that CO2-rich feeds reduce carbon risk."
 )
 
 p = doc.add_paragraph()
@@ -192,18 +191,18 @@ set_heading("1.1 Motivation", level=2)
 add_paragraph(
     "Methane and carbon dioxide are the two most significant anthropogenic "
     "greenhouse gases. Methane has a global warming potential approximately "
-    "28 times that of CO\u2082 over a 100-year horizon. Dry reforming of methane "
+    "28 times that of CO2 over a 100-year horizon. Dry reforming of methane "
     "(DRM) consumes both gases in a single reaction (Eq. 1):"
 )
 eq = doc.add_paragraph()
 eq.alignment = WD_ALIGN_PARAGRAPH.CENTER
-r = eq.add_run("CH\u2084 + CO\u2082 \u2192 2 CO + 2 H\u2082      \u0394H\u00b0\u2082\u2089\u2088 = +247 kJ/mol      (Eq. 1)")
+r = eq.add_run("CH4 + CO2 -> 2 CO + 2 H2      dH(298 K) = +247 kJ/mol      (Eq. 1)")
 r.italic = True
 
 add_paragraph(
-    "The reaction produces syngas with an H\u2082/CO ratio close to unity, which "
+    "The reaction produces syngas with an H2/CO ratio close to unity, which "
     "is ideal for Fischer-Tropsch synthesis and methanol production. Because "
-    "DRM is strongly endothermic, it operates at 700\u20131000 \u00b0C where "
+    "DRM is strongly endothermic, it operates at 700-1000 degC where "
     "thermodynamic conversion is favorable."
 )
 add_paragraph(
@@ -246,28 +245,28 @@ add_paragraph(
 set_heading("2. Proposed Elementary Reaction Mechanism", level=1)
 add_paragraph(
     "DRM proceeds through two coupled networks: sequential dehydrogenation of "
-    "adsorbed methane to CH\u2093 fragments (eventually to atomic carbon), and "
-    "dissociative activation of CO\u2082 to CO and O. Surface oxygen then removes "
+    "adsorbed methane to CHx fragments (eventually to atomic carbon), and "
+    "dissociative activation of CO2 to CO and O. Surface oxygen then removes "
     "carbon via oxidation or the Boudouard reaction. Carbon accumulates when "
     "the formation rate exceeds the removal rate. The 14 elementary steps used "
     "in this study are listed below. The asterisk (*) denotes an empty site."
 )
 
 steps = [
-    ("1.", "CH\u2084(g) + 2* \u21cc CH\u2083* + H*"),
-    ("2.", "CH\u2083* + * \u21cc CH\u2082* + H*"),
-    ("3.", "CH\u2082* + * \u21cc CH* + H*"),
-    ("4.", "CH* + * \u21cc C* + H*"),
-    ("5.", "CO\u2082(g) + * \u21cc CO\u2082*"),
-    ("6.", "CO\u2082* + * \u21cc CO* + O*"),
-    ("7.", "C* + O* \u21cc CO* + *"),
-    ("8.", "C* + CO\u2082* \u21cc 2 CO*"),
-    ("9.", "CO* \u21cc CO(g) + *"),
-    ("10.", "2 H* \u21cc H\u2082(g) + 2*"),
-    ("11.", "O* + H* \u21cc OH* + *"),
-    ("12.", "OH* + H* \u21cc H\u2082O* + *"),
-    ("13.", "H\u2082O* \u21cc H\u2082O(g) + *"),
-    ("14.", "CH* + O* \u21cc CO* + H*"),
+    ("1.", "CH4(g) + 2* <-> CH3* + H*"),
+    ("2.", "CH3* + * <-> CH2* + H*"),
+    ("3.", "CH2* + * <-> CH* + H*"),
+    ("4.", "CH* + * <-> C* + H*"),
+    ("5.", "CO2(g) + * <-> CO2*"),
+    ("6.", "CO2* + * <-> CO* + O*"),
+    ("7.", "C* + O* <-> CO* + *"),
+    ("8.", "C* + CO2* <-> 2 CO*"),
+    ("9.", "CO* <-> CO(g) + *"),
+    ("10.", "2 H* <-> H2(g) + 2*"),
+    ("11.", "O* + H* <-> OH* + *"),
+    ("12.", "OH* + H* <-> H2O* + *"),
+    ("13.", "H2O* <-> H2O(g) + *"),
+    ("14.", "CH* + O* <-> CO* + H*"),
 ]
 
 for num, eqn in steps:
@@ -281,7 +280,7 @@ doc.add_paragraph()
 add_paragraph(
     "Steps 7 and 8 are the carbon removal pathways that determine whether a "
     "catalyst will resist coke. The competition between step 4 (which forms "
-    "carbon) and steps 7\u20138 (which remove it) determines the steady-state "
+    "carbon) and steps 7-8 (which remove it) determines the steady-state "
     "carbon coverage and therefore the catalyst lifetime."
 )
 
@@ -291,10 +290,10 @@ add_paragraph(
 set_heading("3. Computational Methodology", level=1)
 
 set_heading("3.1 Software and Tools", level=2)
-add_bullet("Python 3.13 \u2014 implementation language.")
-add_bullet("NumPy, SciPy \u2014 numerical integration and linear algebra.")
-add_bullet("Cantera 3.2 \u2014 gas-phase equilibrium and reactor modeling.")
-add_bullet("Matplotlib \u2014 figure generation.")
+add_bullet("Python 3.13 - implementation language.")
+add_bullet("NumPy, SciPy - numerical integration and linear algebra.")
+add_bullet("Cantera 3.2 - gas-phase equilibrium and reactor modeling.")
+add_bullet("Matplotlib - figure generation.")
 
 set_heading("3.2 Numerical Microkinetic Model", level=2)
 add_paragraph(
@@ -303,21 +302,21 @@ add_paragraph(
 )
 eq = doc.add_paragraph()
 eq.alignment = WD_ALIGN_PARAGRAPH.CENTER
-r = eq.add_run("d\u03b8_i / dt = \u03a3_j \u03bd_ij r_j(\u03b8, T, P)      (Eq. 2)")
+r = eq.add_run("d(theta_i)/dt = SUM_j (nu_ij * r_j(theta, T, P))      (Eq. 2)")
 r.italic = True
 
 add_paragraph(
-    "where \u03b8_i is the coverage of surface species i, \u03bd_ij is the "
+    "where theta_i is the coverage of surface species i, nu_ij is the "
     "stoichiometric coefficient of species i in reaction j, and r_j is the "
     "net rate of reaction j. The system was integrated to steady state using "
-    "the implicit BDF solver (scipy.integrate.solve_ivp) with "
-    "rtol = 10\u207b\u2076 and atol = 10\u207b\u00b9\u2070 over a time span of 10\u2076 seconds. Rate "
-    "constants follow the Arrhenius equation with step-specific literature "
-    "pre-exponential factors between 10\u00b9\u00b9 and 10\u00b9\u00b3 s\u207b\u00b9. Adsorption rates "
-    "use the Hertz-Knudsen equation with a sticking coefficient of 1.0 and a "
-    "site density of 1.77 \u00d7 10\u00b9\u2079 sites/m\u00b2. Reverse barriers are computed "
-    "from the thermodynamic consistency condition "
-    "Ea_rev = Ea_fwd + \u0394E_reaction."
+    "the implicit BDF solver (scipy.integrate.solve_ivp) with relative "
+    "tolerance 1e-6 and absolute tolerance 1e-10, over a time span of "
+    "1,000,000 seconds. Rate constants follow the Arrhenius equation with "
+    "step-specific literature pre-exponential factors between 1e11 and 1e13 "
+    "per second. Adsorption rates use the Hertz-Knudsen equation with a "
+    "sticking coefficient of 1.0 and a site density of 1.77e19 sites per "
+    "square meter. Reverse barriers are computed from the thermodynamic "
+    "consistency condition Ea_rev = Ea_fwd + dE_reaction."
 )
 
 add_paragraph("Table 1 lists the full set of elementary steps, forward "
@@ -326,20 +325,20 @@ add_paragraph("Table 1 lists the full set of elementary steps, forward "
 add_table(
     ["#", "Elementary Step", "Ea_fwd (eV)", "Source"],
     [
-        ["1", "CH\u2084 + 2* \u21cc CH\u2083* + H*", "0.85", "Blaylock 2009"],
-        ["2", "CH\u2083* + * \u21cc CH\u2082* + H*", "0.55", "Blaylock 2009"],
-        ["3", "CH\u2082* + * \u21cc CH* + H*", "0.35", "Blaylock 2009"],
-        ["4", "CH* + * \u21cc C* + H*", "0.85", "Blaylock 2009"],
-        ["5", "CO\u2082 + * \u21cc CO\u2082*", "0.00", "adsorption"],
-        ["6", "CO\u2082* + * \u21cc CO* + O*", "0.80", "Wang 2013"],
-        ["7", "C* + O* \u21cc CO* + *", "1.10", "Jones 2009"],
-        ["8", "C* + CO\u2082* \u21cc 2 CO*", "1.30", "Jones 2009"],
-        ["9", "CO* \u21cc CO(g) + *", "des.", "desorption"],
-        ["10", "2 H* \u21cc H\u2082(g) + 2*", "0.85", "Blaylock 2009"],
-        ["11", "O* + H* \u21cc OH* + *", "0.75", "Jones 2009"],
-        ["12", "OH* + H* \u21cc H\u2082O* + *", "0.35", "Jones 2009"],
-        ["13", "H\u2082O* \u21cc H\u2082O(g) + *", "des.", "desorption"],
-        ["14", "CH* + O* \u21cc CO* + H*", "1.00", "Wang 2013"],
+        ["1", "CH4 + 2* <-> CH3* + H*", "0.85", "Blaylock 2009"],
+        ["2", "CH3* + * <-> CH2* + H*", "0.55", "Blaylock 2009"],
+        ["3", "CH2* + * <-> CH* + H*", "0.35", "Blaylock 2009"],
+        ["4", "CH* + * <-> C* + H*", "0.85", "Blaylock 2009"],
+        ["5", "CO2 + * <-> CO2*", "0.00", "adsorption"],
+        ["6", "CO2* + * <-> CO* + O*", "0.80", "Wang 2013"],
+        ["7", "C* + O* <-> CO* + *", "1.10", "Jones 2009"],
+        ["8", "C* + CO2* <-> 2 CO*", "1.30", "Jones 2009"],
+        ["9", "CO* <-> CO(g) + *", "des.", "desorption"],
+        ["10", "2 H* <-> H2(g) + 2*", "0.85", "Blaylock 2009"],
+        ["11", "O* + H* <-> OH* + *", "0.75", "Jones 2009"],
+        ["12", "OH* + H* <-> H2O* + *", "0.35", "Jones 2009"],
+        ["13", "H2O* <-> H2O(g) + *", "des.", "desorption"],
+        ["14", "CH* + O* <-> CO* + H*", "1.00", "Wang 2013"],
     ],
     font_size=9,
 )
@@ -353,26 +352,26 @@ r.font.size = Pt(10)
 
 set_heading("3.3 BEP Corrections for Carbon Formation", level=2)
 add_paragraph(
-    "The carbon-forming dehydrogenation steps (CH\u2083, CH\u2082, and CH "
+    "The carbon-forming dehydrogenation steps (CH3, CH2, and CH "
     "dehydrogenation) were scaled with the catalyst carbon binding energy "
-    "using a Br\u00f8nsted-Evans-Polanyi (BEP) relation:"
+    "using a Bronsted-Evans-Polanyi (BEP) relation:"
 )
 eq = doc.add_paragraph()
 eq.alignment = WD_ALIGN_PARAGRAPH.CENTER
-r = eq.add_run("Ea_i = Ea_i\u00b0 + \u03b3_i \u00b7 \u0394E_C      (Eq. 3)")
+r = eq.add_run("Ea_i = Ea_i(0) + gamma_i * dE_C      (Eq. 3)")
 r.italic = True
 add_paragraph(
-    "with BEP coefficients \u03b3 of 0.55, 0.35, and 0.60 for CH\u2083, CH\u2082, "
+    "with BEP coefficients gamma of 0.55, 0.35, and 0.60 for CH3, CH2, "
     "and CH dehydrogenation respectively."
 )
 add_paragraph(
     "The BEP coefficients used here are consistent with the values reported "
-    "in the literature for CH\u2093 dehydrogenation on transition metals. "
+    "in the literature for CHx dehydrogenation on transition metals. "
     "Bligaard et al. (2004) showed that dehydrogenation barriers on metal "
     "surfaces scale linearly with the carbon binding energy with slopes in "
-    "the range of 0.4\u20130.8. Jones et al. (2009) reported comparable values "
-    "for methane reforming on Ni, Pt, and Ru surfaces. CH\u2083 (0.55) and CH "
-    "(0.60) have steeper slopes than CH\u2082 (0.35), reflecting the higher "
+    "the range 0.4 to 0.8. Jones et al. (2009) reported comparable values "
+    "for methane reforming on Ni, Pt, and Ru surfaces. CH3 (0.55) and CH "
+    "(0.60) have steeper slopes than CH2 (0.35), reflecting the higher "
     "sensitivity of these steps to the carbon binding energy."
 )
 
@@ -380,9 +379,9 @@ set_heading("3.4 Degree of Rate Control", level=2)
 add_paragraph(
     "The degree of rate control (DRC) of each step was computed using the "
     "Campbell formalism: the barrier of each step was perturbed by +0.05 eV, "
-    "the steady state was re-solved, and the change in ln(TOF) was measured. "
-    "Campbell's theorem requires the sum of all DRC values to equal 1.0 for "
-    "a valid microkinetic model."
+    "the steady state was re-solved, and the change in the natural logarithm "
+    "of the turnover frequency was measured. Campbell's theorem requires the "
+    "sum of all DRC values to equal 1.0 for a valid microkinetic model."
 )
 
 set_heading("3.5 Robustness Analysis", level=2)
@@ -397,16 +396,16 @@ set_heading("3.6 Reactor Model", level=2)
 add_paragraph(
     "A 1D plug-flow reactor model was constructed in Cantera. The reactor is "
     "0.5 m long with a 10 cm diameter and a catalyst bed density of "
-    "800 kg/m\u00b3. The inlet feed is equimolar CH\u2084:CO\u2082 with N\u2082 balance. "
-    "Gas-phase equilibrium was computed using the GRI-Mech 3.0 mechanism, "
-    "which has been validated for the CH\u2084/CO\u2082/H\u2082/CO/H\u2082O system."
+    "800 kg per cubic meter. The inlet feed is equimolar CH4:CO2 with N2 "
+    "balance. Gas-phase equilibrium was computed using the GRI-Mech 3.0 "
+    "mechanism, which has been validated for the CH4/CO2/H2/CO/H2O system."
 )
 
 set_heading("3.7 Data Sources", level=2)
 add_paragraph(
     "Adsorption energies and activation barriers were taken from published "
     "DFT studies (Blaylock et al. 2009; Jones et al. 2009; Wang et al. 2013; "
-    "N\u00f8rskov et al. 2002). Descriptor shifts for Pt, Ru, Rh, Co, and Ir "
+    "Norskov et al. 2002). Descriptor shifts for Pt, Ru, Rh, Co, and Ir "
     "were derived from the comparative DFT studies reported in these "
     "references."
 )
@@ -420,9 +419,9 @@ set_heading("4.1 Steady-State Coverages and Activity", level=2)
 add_paragraph(
     "The steady-state solver returns sub-monolayer coverages for all species "
     "on Ni(111) at 900 K and 1 bar. The surface is predominantly empty "
-    "(\u03b8* = 0.82). The atomic carbon coverage is \u03b8_C = 0.12 monolayer, "
-    "and the CH coverage is \u03b8_CH = 0.05 monolayer, giving a total "
-    "carbonaceous coverage of 0.17 monolayer."
+    "(theta_* = 0.82). The atomic carbon coverage is theta_C = 0.12 "
+    "monolayer, and the CH coverage is theta_CH = 0.05 monolayer, giving a "
+    "total carbonaceous coverage of 0.17 monolayer."
 )
 add_paragraph(
     "Table 2 compares the predicted turnover frequencies with experimentally "
@@ -432,21 +431,15 @@ add_paragraph(
 )
 
 add_table(
-    ["Catalyst", "Our predicted TOF (s\u207b\u00b9)",
-     "Experimental TOF (s\u207b\u00b9)", "Source"],
+    ["Catalyst", "Our predicted TOF (per s)",
+     "Experimental TOF (per s)", "Source"],
     [
-        ["Ni(111)",  "2.1 \u00d7 10\u00b9", "1.0 \u00d7 10\u00b9 \u2013 5.0 \u00d7 10\u00b9",
-         "Blaylock 2009"],
-        ["Co(0001)", "2.8 \u00d7 10\u00b9", "1.0 \u00d7 10\u00b9 \u2013 6.0 \u00d7 10\u00b9",
-         "Vasiliades 2016"],
-        ["Ru(0001)", "9.5 \u00d7 10\u00b9", "5.0 \u00d7 10\u00b9 \u2013 2.0 \u00d7 10\u00b2",
-         "Jones 2009"],
-        ["Rh(111)",  "1.3 \u00d7 10\u00b2", "0.8 \u00d7 10\u00b2 \u2013 2.5 \u00d7 10\u00b2",
-         "Wang 2013"],
-        ["Pt(111)",  "8.5 \u00d7 10\u00b9", "3.0 \u00d7 10\u00b9 \u2013 1.2 \u00d7 10\u00b2",
-         "Jones 2009"],
-        ["Ir(111)",  "7.8 \u00d7 10\u00b9", "4.0 \u00d7 10\u00b9 \u2013 1.5 \u00d7 10\u00b2",
-         "Jones 2009"],
+        ["Ni(111)",  "2.1e1", "1.0e1 - 5.0e1", "Blaylock 2009"],
+        ["Co(0001)", "2.8e1", "1.0e1 - 6.0e1", "Vasiliades 2016"],
+        ["Ru(0001)", "9.5e1", "5.0e1 - 2.0e2", "Jones 2009"],
+        ["Rh(111)",  "1.3e2", "0.8e2 - 2.5e2", "Wang 2013"],
+        ["Pt(111)",  "8.5e1", "3.0e1 - 1.2e2", "Jones 2009"],
+        ["Ir(111)",  "7.8e1", "4.0e1 - 1.5e2", "Jones 2009"],
     ],
 )
 
@@ -460,27 +453,27 @@ r.font.size = Pt(10)
 add_paragraph(
     "Table 3 lists the complete screening results for the six catalysts. "
     "Activity varies by nearly an order of magnitude, with Rh reaching "
-    "130 s\u207b\u00b9 while Ni remains near 21 s\u207b\u00b9 due to partial carbon "
-    "poisoning."
+    "130 per second while Ni remains near 21 per second due to partial "
+    "carbon poisoning."
 )
 
 add_table(
-    ["Catalyst", "\u0394E_C (eV)", "TOF_CH\u2084 (s\u207b\u00b9)",
-     "\u03b8_C + \u03b8_CH", "Rank"],
+    ["Catalyst", "dE_C (eV)", "TOF_CH4 (per s)",
+     "theta_C + theta_CH", "Rank"],
     [
-        ["Ir(111)",  "+1.40", "7.81 \u00d7 10\u00b9", "4.04 \u00d7 10\u207b\u2074", "1 (best)"],
-        ["Pt(111)",  "+1.20", "8.51 \u00d7 10\u00b9", "1.04 \u00d7 10\u207b\u00b3", "2"],
-        ["Rh(111)",  "+1.00", "1.30 \u00d7 10\u00b2", "3.93 \u00d7 10\u207b\u00b3", "3"],
-        ["Ru(0001)", "+0.60", "9.49 \u00d7 10\u00b9", "2.60 \u00d7 10\u207b\u00b2", "4"],
-        ["Co(0001)", "+0.30", "2.75 \u00d7 10\u00b9", "5.32 \u00d7 10\u207b\u00b2", "5"],
-        ["Ni(111)",  "+0.00", "2.14 \u00d7 10\u00b9", "1.67 \u00d7 10\u207b\u00b9", "6 (worst)"],
+        ["Ir(111)",  "+1.40", "7.81e1", "4.04e-4", "1 (best)"],
+        ["Pt(111)",  "+1.20", "8.51e1", "1.04e-3", "2"],
+        ["Rh(111)",  "+1.00", "1.30e2", "3.93e-3", "3"],
+        ["Ru(0001)", "+0.60", "9.49e1", "2.60e-2", "4"],
+        ["Co(0001)", "+0.30", "2.75e1", "5.32e-2", "5"],
+        ["Ni(111)",  "+0.00", "2.14e1", "1.67e-1", "6 (worst)"],
     ],
 )
 
 p = doc.add_paragraph()
 p.alignment = WD_ALIGN_PARAGRAPH.CENTER
 r = p.add_run("Table 3. Steady-state DRM activity and carbon coverage for "
-              "six catalysts at 900 K, 1 bar.")
+              "six catalysts at 900 K and 1 bar.")
 r.italic = True
 r.font.size = Pt(10)
 
@@ -493,44 +486,44 @@ add_paragraph(
 )
 add_paragraph(
     "The physical origin of the ordering is the BEP dependence of the "
-    "carbon-forming dehydrogenation barriers on \u0394E_C. On Ir and Pt, the "
-    "CH\u2093 intermediates are stabilised by over 0.6\u20130.8 eV relative to Ni, "
+    "carbon-forming dehydrogenation barriers on dE_C. On Ir and Pt, the "
+    "CHx intermediates are stabilised by over 0.6-0.8 eV relative to Ni, "
     "raising the barriers to carbon formation."
 )
 
 add_figure(
     "results/figures/volcano_v2.png",
     "Figure 1. (a) DRM activity volcano plot showing the Sabatier optimum at "
-    "\u0394E_C = +0.73 eV. (b) Carbon resistance map with design-rule threshold "
-    "at \u0394E_C \u2265 +0.8 eV.",
+    "dE_C = +0.73 eV. (b) Carbon resistance map with design-rule threshold "
+    "at dE_C >= +0.8 eV.",
     width=6.5,
 )
 
 set_heading("4.3 Design Rule for Carbon Resistance", level=2)
 add_paragraph(
-    "The total carbon coverage (\u03b8_C + \u03b8_CH) decreases by over two orders "
-    "of magnitude as \u0394E_C shifts from 0.0 eV (Ni) to +1.4 eV (Ir). A "
+    "The total carbon coverage (theta_C + theta_CH) decreases by over two "
+    "orders of magnitude as dE_C shifts from 0.0 eV (Ni) to +1.4 eV (Ir). A "
     "practical threshold for long-term stability corresponds to total carbon "
-    "coverage below 10\u207b\u00b2 monolayer, which is crossed at \u0394E_C \u2248 +0.8 eV, "
+    "coverage below 1e-2 monolayer, which is crossed at dE_C = +0.8 eV, "
     "equivalent to a carbon binding energy weaker than approximately "
-    "\u22125.6 eV."
+    "-5.6 eV."
 )
 add_paragraph(
     "This design rule provides a quantitative basis for catalyst selection "
     "and promoter development. Potassium, manganese, and molybdenum "
     "promoters are known experimentally to weaken carbon binding on Ni by "
-    "0.5\u20131.0 eV, shifting the effective \u0394E_C into the safe region."
+    "0.5-1.0 eV, shifting the effective dE_C into the safe region."
 )
 
 set_heading("4.4 Temperature Sensitivity", level=2)
 add_paragraph(
-    "Figure 2 shows the temperature dependence of activity, carbon resistance, "
-    "and carbon coverage between 700 and 1100 K. Activity follows Arrhenius "
-    "behavior for all catalysts. Carbon coverage decreases at higher "
-    "temperature because carbon gasification is thermally activated. The "
-    "apparent activation energies extracted from the Arrhenius plots range "
-    "from 469 meV (Ru) to 850 meV (Ni), in agreement with the experimental "
-    "range of 600\u20131000 meV reported for DRM catalysts."
+    "Figure 2 shows the temperature dependence of activity, carbon "
+    "resistance, and carbon coverage between 700 and 1100 K. Activity "
+    "follows Arrhenius behavior for all catalysts. Carbon coverage decreases "
+    "at higher temperature because carbon gasification is thermally "
+    "activated. The apparent activation energies extracted from the "
+    "Arrhenius plots range from 469 meV (Ru) to 850 meV (Ni), in agreement "
+    "with the experimental range of 600-1000 meV reported for DRM catalysts."
 )
 
 add_figure(
@@ -543,26 +536,26 @@ add_figure(
 
 set_heading("4.5 Reactor Performance", level=2)
 add_paragraph(
-    "Figure 3 shows the plug-flow reactor analysis. CH\u2084 and CO\u2082 are "
-    "progressively converted to CO and H\u2082 along the reactor length. "
-    "Equilibrium calculations show CH\u2084 conversion approaching 85% at "
-    "1000 K. Under our 0.5 m reactor at 900 K, CH\u2084 conversion varies "
+    "Figure 3 shows the plug-flow reactor analysis. CH4 and CO2 are "
+    "progressively converted to CO and H2 along the reactor length. "
+    "Equilibrium calculations show CH4 conversion approaching 85 percent at "
+    "1000 K. Under our 0.5 m reactor at 900 K, CH4 conversion varies "
     "widely across the six catalysts: Ru(0001) and Rh(111) reach near-"
-    "equilibrium conversion (>85%) because of their higher intrinsic rates, "
-    "while Ni(111) and Ir(111) remain at 1.8% and 3.5% respectively due to "
-    "their lower rate at this temperature. This wide spread reflects the "
-    "strong dependence of the DRM rate on the carbon binding descriptor. "
-    "Ni-based DRM reactors must therefore operate above 1000 K to approach "
-    "thermodynamic limits. The equilibrium H\u2082/CO ratio approaches unity "
-    "at high temperature (Figure 3d)."
+    "equilibrium conversion (above 85 percent) because of their higher "
+    "intrinsic rates, while Ni(111) and Ir(111) remain at 1.8 and 3.5 "
+    "percent respectively due to their lower rate at this temperature. This "
+    "wide spread reflects the strong dependence of the DRM rate on the "
+    "carbon binding descriptor. Ni-based DRM reactors must therefore "
+    "operate above 1000 K to approach thermodynamic limits. The equilibrium "
+    "H2/CO ratio approaches unity at high temperature (Figure 3d)."
 )
 
 add_figure(
     "results/figures/reactor.png",
     "Figure 3. Cantera plug-flow reactor analysis for DRM. (a) axial "
-    "composition profile, (b) CH\u2084 conversion vs reactor length for all "
+    "composition profile, (b) CH4 conversion vs reactor length for all "
     "six catalysts, (c) equilibrium conversion vs T, (d) equilibrium "
-    "H\u2082/CO ratio vs T.",
+    "H2/CO ratio vs T.",
     width=6.5,
 )
 
@@ -604,21 +597,21 @@ add_paragraph(
 add_figure(
     "results/figures/drc.png",
     "Figure 5. Degree of Rate Control for DRM on Ni, Rh, and Pt. Red bars "
-    "indicate steps with |DRC| > 0.3.",
+    "indicate steps with absolute DRC greater than 0.3.",
     width=6.5,
 )
 
 set_heading("4.8 Feed Ratio Study", level=2)
 add_paragraph(
     "The effect of feed composition was studied by running the reactor model "
-    "at three CH\u2084:CO\u2082 ratios: equimolar (1:1), methane-rich (2:1), and "
-    "CO\u2082-rich (1:2). Figure 6 shows CH\u2084 conversion, H\u2082/CO ratio, and the "
+    "at three CH4:CO2 ratios: equimolar (1:1), methane-rich (2:1), and "
+    "CO2-rich (1:2). Figure 6 shows CH4 conversion, H2/CO ratio, and the "
     "total carbon coverage for all six catalysts."
 )
 add_paragraph(
-    "The results show that CO\u2082-rich feeds improve CH\u2084 conversion and "
-    "produce syngas with a H\u2082/CO ratio close to unity. This is consistent "
-    "with industrial practice, where excess CO\u2082 is fed to suppress carbon "
+    "The results show that CO2-rich feeds improve CH4 conversion and "
+    "produce syngas with a H2/CO ratio close to unity. This is consistent "
+    "with industrial practice, where excess CO2 is fed to suppress carbon "
     "deposition and favor the DRM reaction over methanation. The total "
     "carbon coverage panel (Figure 6c) uses the actual steady-state "
     "coverages computed from the microkinetic model (Table 3), and shows "
@@ -627,17 +620,17 @@ add_paragraph(
 )
 add_paragraph(
     "Note that the conversions reported here vary substantially across the "
-    "six catalysts (1.8% for Ni, up to 100% for Ru at 900 K). These values "
-    "reflect the short 0.5 m reactor used in this study. Industrial DRM "
-    "reactors operate at longer residence times (multi-meter beds) or "
-    "higher temperatures (>1000 K) to achieve uniform high per-pass "
-    "conversions across all catalyst types."
+    "six catalysts (1.8 percent for Ni, up to 100 percent for Ru at 900 K). "
+    "These values reflect the short 0.5 m reactor used in this study. "
+    "Industrial DRM reactors operate at longer residence times (multi-meter "
+    "beds) or higher temperatures (above 1000 K) to achieve uniform high "
+    "per-pass conversions across all catalyst types."
 )
 
 add_figure(
     "results/figures/feed_ratio.png",
-    "Figure 6. Feed ratio study. (a) CH\u2084 conversion vs feed ratio, "
-    "(b) H\u2082/CO ratio vs feed ratio, (c) total carbon coverage for all "
+    "Figure 6. Feed ratio study. (a) CH4 conversion vs feed ratio, "
+    "(b) H2/CO ratio vs feed ratio, (c) total carbon coverage for all "
     "six catalysts, (d) reactor performance summary table.",
     width=6.5,
 )
@@ -645,42 +638,43 @@ add_figure(
 set_heading("4.9 Uncertainty Quantification of Predicted Activity", level=2)
 add_paragraph(
     "Because DFT adsorption energies carry typical uncertainties of "
-    "\u00b10.1 eV, a Monte Carlo uncertainty analysis was performed to "
-    "quantify the reliability of the predicted turnover frequencies. "
+    "plus or minus 0.1 eV, a Monte Carlo uncertainty analysis was performed "
+    "to quantify the reliability of the predicted turnover frequencies. "
     "Each of the 14 elementary barriers was perturbed by a random value "
-    "drawn from a normal distribution with \u03c3 = 0.10 eV, and the "
+    "drawn from a normal distribution with sigma equal to 0.10 eV, and the "
     "steady-state solver was rerun 30 times per catalyst."
 )
 add_paragraph(
-    "Table 4 lists the mean TOF and 95% confidence intervals for all six "
-    "catalysts. The ranking is preserved across the entire uncertainty band, "
-    "confirming that the predicted ordering is not an artifact of DFT error."
+    "Table 4 lists the mean TOF and 95 percent confidence intervals for all "
+    "six catalysts. The ranking is preserved across the entire uncertainty "
+    "band, confirming that the predicted ordering is not an artifact of DFT "
+    "error."
 )
 
 add_table(
-    ["Catalyst", "Mean TOF (s\u207b\u00b9)", "Std (s\u207b\u00b9)",
-     "95% Confidence Interval"],
+    ["Catalyst", "Mean TOF (per s)", "Std (per s)",
+     "95 percent Confidence Interval"],
     [
-        ["Ni(111)",  "2.44 \u00d7 10\u00b9", "1.54 \u00d7 10\u00b9", "[9.55, 58.3]"],
-        ["Pt(111)",  "7.90 \u00d7 10\u00b9", "4.49 \u00d7 10\u00b9", "[32.6, 175]"],
-        ["Ru(0001)", "8.58 \u00d7 10\u00b9", "4.19 \u00d7 10\u00b9", "[39.3, 162]"],
-        ["Rh(111)",  "1.18 \u00d7 10\u00b2", "6.47 \u00d7 10\u00b9", "[58.3, 246]"],
-        ["Co(0001)", "3.00 \u00d7 10\u00b9", "1.61 \u00d7 10\u00b9", "[12.3, 57.5]"],
-        ["Ir(111)",  "7.00 \u00d7 10\u00b9", "4.07 \u00d7 10\u00b9", "[26.8, 155]"],
+        ["Ni(111)",  "2.44e1", "1.54e1", "[9.55, 58.3]"],
+        ["Pt(111)",  "7.90e1", "4.49e1", "[32.6, 175]"],
+        ["Ru(0001)", "8.58e1", "4.19e1", "[39.3, 162]"],
+        ["Rh(111)",  "1.18e2", "6.47e1", "[58.3, 246]"],
+        ["Co(0001)", "3.00e1", "1.61e1", "[12.3, 57.5]"],
+        ["Ir(111)",  "7.00e1", "4.07e1", "[26.8, 155]"],
     ],
 )
 
 p = doc.add_paragraph()
 p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-r = p.add_run("Table 4. Predicted TOF with 95% confidence intervals from "
-              "Monte Carlo uncertainty analysis with \u03c3_DFT = 0.10 eV.")
+r = p.add_run("Table 4. Predicted TOF with 95 percent confidence intervals "
+              "from Monte Carlo uncertainty analysis with sigma_DFT = 0.10 eV.")
 r.italic = True
 r.font.size = Pt(10)
 
 add_figure(
     "results/figures/uncertainty.png",
     "Figure 7. Uncertainty quantification. (a) TOF distributions for all "
-    "six catalysts from Monte Carlo sampling. (b) Mean TOF with 90% "
+    "six catalysts from Monte Carlo sampling. (b) Mean TOF with 90 percent "
     "confidence intervals.",
     width=6.5,
 )
@@ -700,15 +694,15 @@ add_paragraph(
     "dehydrogenation). This is a forward-rate metric: it captures the "
     "intrinsic branching ratio of the surface chemistry at steady state, "
     "not the net rate (which is zero at steady state by definition). The "
-    "DSC of each step i is computed as d ln(S/(1\u2212S)) / d ln(k_i)."
+    "DSC of each step i is computed as d[ln(S/(1-S))] / d[ln(k_i)]."
 )
 add_paragraph(
     "Table 5 shows that different catalysts control their selectivity "
     "through different elementary steps. On Ni(111), selectivity is "
     "controlled primarily by CH oxidation (DSC = +0.53). On Pt(111), "
     "Rh(111), and Ir(111), the dominant controlling step is CH "
-    "dehydrogenation (DSC values between \u22120.92 and \u22120.99). On Ru "
-    "and Co, the controlling step is C oxidation by surface oxygen."
+    "dehydrogenation (DSC values between -0.92 and -0.99). On Ru and Co, "
+    "the controlling step is C oxidation by surface oxygen."
 )
 add_paragraph(
     "This distinction has a direct design implication. On Ni and Co, "
@@ -722,12 +716,12 @@ add_paragraph(
 add_table(
     ["Catalyst", "S_CO", "Top controlling step", "DSC"],
     [
-        ["Ni(111)",  "0.684", "CH_oxidation",       "+0.534"],
-        ["Pt(111)",  "0.896", "CH_dehydrogenation", "\u22120.924"],
-        ["Ru(0001)", "0.540", "C_oxidation_by_O",   "\u22120.148"],
-        ["Rh(111)",  "0.676", "CH_dehydrogenation", "\u22120.630"],
-        ["Co(0001)", "0.601", "C_oxidation_by_O",   "\u22120.352"],
-        ["Ir(111)",  "0.987", "CH_dehydrogenation", "\u22120.992"],
+        ["Ni(111)",  "0.684", "CH oxidation",       "+0.534"],
+        ["Pt(111)",  "0.896", "CH dehydrogenation", "-0.924"],
+        ["Ru(0001)", "0.540", "C oxidation by O",   "-0.148"],
+        ["Rh(111)",  "0.676", "CH dehydrogenation", "-0.630"],
+        ["Co(0001)", "0.601", "C oxidation by O",   "-0.352"],
+        ["Ir(111)",  "0.987", "CH dehydrogenation", "-0.992"],
     ],
 )
 
@@ -748,7 +742,7 @@ set_heading("4.11 Sensitivity to Pre-exponential Factors", level=2)
 add_paragraph(
     "To test whether the predicted ranking depends on the assumed "
     "pre-exponential factors, each step's prefactor was perturbed by a "
-    "random factor drawn log-uniformly from 0.1\u00d7 to 10\u00d7 its literature "
+    "random factor drawn log-uniformly from 0.1x to 10x its literature "
     "value. Twenty realizations were generated per catalyst, and the "
     "carbon coverage was computed for each."
 )
@@ -760,22 +754,22 @@ add_paragraph(
     "realization places Ni below Ir or Co below Pt."
 )
 add_paragraph(
-    "This result confirms that the central design rule of this work \u2014 "
-    "that weak carbon binding favors coke resistance \u2014 is not an artifact "
-    "of the assumed prefactors. However, the sensitivity of adjacent-pair "
+    "This result confirms that the central design rule of this work - that "
+    "weak carbon binding favors coke resistance - is not an artifact of the "
+    "assumed prefactors. However, the sensitivity of adjacent-pair "
     "orderings highlights the need for accurate experimental determination "
     "of the pre-exponential factors in future work."
 )
 
 add_table(
-    ["Catalyst", "Mean \u03b8_C + \u03b8_CH", "Std", "Rank (mean)"],
+    ["Catalyst", "Mean theta_C + theta_CH", "Std", "Rank (mean)"],
     [
-        ["Ir(111)",  "3.02 \u00d7 10\u207b\u00b3", "4.48 \u00d7 10\u207b\u00b3", "1 (best)"],
-        ["Pt(111)",  "9.85 \u00d7 10\u207b\u00b3", "1.92 \u00d7 10\u207b\u00b2", "2"],
-        ["Rh(111)",  "1.53 \u00d7 10\u207b\u00b2", "2.02 \u00d7 10\u207b\u00b2", "3"],
-        ["Ru(0001)", "6.49 \u00d7 10\u207b\u00b2", "6.38 \u00d7 10\u207b\u00b2", "4"],
-        ["Co(0001)", "1.35 \u00d7 10\u207b\u00b9", "1.04 \u00d7 10\u207b\u00b9", "5"],
-        ["Ni(111)",  "2.04 \u00d7 10\u207b\u00b9", "1.75 \u00d7 10\u207b\u00b9", "6 (worst)"],
+        ["Ir(111)",  "3.02e-3", "4.48e-3", "1 (best)"],
+        ["Pt(111)",  "9.85e-3", "1.92e-2", "2"],
+        ["Rh(111)",  "1.53e-2", "2.02e-2", "3"],
+        ["Ru(0001)", "6.49e-2", "6.38e-2", "4"],
+        ["Co(0001)", "1.35e-1", "1.04e-1", "5"],
+        ["Ni(111)",  "2.04e-1", "1.75e-1", "6 (worst)"],
     ],
 )
 
@@ -802,25 +796,25 @@ add_paragraph(
     "analysis, degree-of-rate-control analysis, and reactor/feed-ratio "
     "studies together provide the following design rules:"
 )
-add_bullet("Carbon binding energy weaker than \u22125.6 eV (equivalently "
-           "\u0394E_C \u2265 +0.8 eV relative to Ni) is necessary for long-term "
+add_bullet("Carbon binding energy weaker than -5.6 eV (equivalently "
+           "dE_C >= +0.8 eV relative to Ni) is necessary for long-term "
            "carbon resistance.")
 add_bullet("The optimum carbon binding energy for maximum activity is "
-           "\u0394E_C = +0.73 eV (E_C \u2248 \u22125.7 eV), balancing methane "
+           "dE_C = +0.73 eV (E_C = -5.7 eV), balancing methane "
            "activation against carbon removal.")
 add_bullet("CO desorption is rate-determining on all six catalysts, so "
            "surface engineering to weaken CO binding should raise activity.")
 add_bullet("For Ni-based catalysts, promoters should weaken carbon binding "
-           "by at least 0.8 eV to bring the effective \u0394E_C into the safe "
+           "by at least 0.8 eV to bring the effective dE_C into the safe "
            "region.")
 add_bullet("Operating temperature should be maintained above 1000 K for "
            "Ni-based catalysts, or above 900 K for Pt, Ir, and Rh.")
-add_bullet("CO\u2082-rich feed ratios (CH\u2084:CO\u2082 \u2264 1:1) reduce carbon risk and "
-           "improve CH\u2084 conversion, at the cost of additional CO\u2082 handling.")
+add_bullet("CO2-rich feed ratios (CH4:CO2 <= 1:1) reduce carbon risk and "
+           "improve CH4 conversion, at the cost of additional CO2 handling.")
 add_bullet("The predicted ranking is robust across a factor of 3 range in "
            "the BEP coefficients, across a 350 K temperature window, and at "
-           "the ensemble level across \u00b11 order of magnitude prefactor "
-           "perturbations.")
+           "the ensemble level across plus or minus 1 order of magnitude "
+           "prefactor perturbations.")
 
 # ============================================================
 # 6. CONCLUSIONS
@@ -845,7 +839,7 @@ add_bullet("Total carbonaceous coverage on Ni(111) reaches 0.17 monolayer, "
 add_bullet("The ranking is robust: across 19 perturbation conditions in "
            "BEP and temperature, the ranking remained identical in every "
            "case.")
-add_bullet("Monte Carlo uncertainty quantification (\u03c3_DFT = 0.10 eV) "
+add_bullet("Monte Carlo uncertainty quantification (sigma_DFT = 0.10 eV) "
            "and prefactor sensitivity analysis confirm the ranking is "
            "preserved at the ensemble level.")
 add_bullet("Degree of rate control analysis identifies CO desorption as the "
@@ -855,13 +849,13 @@ add_bullet("Degree of selectivity control analysis shows that Ni and Co "
            "control selectivity through CH/C oxidation, while Pt, Rh, and "
            "Ir control it through CH dehydrogenation.")
 add_bullet("A quantitative design rule is derived: catalysts with carbon "
-           "binding weaker than \u22125.6 eV resist coke formation.")
+           "binding weaker than -5.6 eV resist coke formation.")
 add_bullet("A Sabatier volcano plot identifies the optimum binding energy "
-           "at \u0394E_C = +0.73 eV.")
+           "at dE_C = +0.73 eV.")
 
 add_paragraph(
     "Future work should incorporate adsorbate-adsorbate interactions, "
-    "coverage-dependent BEP parameters, and direct CH\u2084 dissociation "
+    "coverage-dependent BEP parameters, and direct CH4 dissociation "
     "pathways, and validate the predicted design rule against experimental "
     "carbon deposition measurements."
 )
@@ -880,15 +874,15 @@ add_bullet("Step-specific pre-exponential factors were taken from the "
            "literature but were not independently fitted to DFT data. "
            "Their uncertainty is quantified in Section 4.11.")
 add_bullet("Sticking coefficients: a value of 1.0 was used for all "
-           "adsorbates. Real CO\u2082 sticking coefficients are typically "
-           "10\u207b\u00b2\u201310\u207b\u00b3, which would reduce absolute rates but not the "
+           "adsorbates. Real CO2 sticking coefficients are typically "
+           "1e-2 to 1e-3, which would reduce absolute rates but not the "
            "relative ranking.")
 add_bullet("BEP coefficients: values were taken from the literature range "
            "and not independently fit.")
 add_bullet("No experimental validation of the derived design rule; the "
            "comparison in Table 2 is limited to published TOF ranges.")
 add_bullet("GRI-Mech 3.0 equilibrium: while validated for the "
-           "CH\u2084/CO\u2082/H\u2082 system, it is a combustion mechanism and could "
+           "CH4/CO2/H2 system, it is a combustion mechanism and could "
            "introduce small errors in equilibrium compositions near "
            "industrial conditions.")
 
@@ -901,32 +895,32 @@ set_heading("7. References", level=1)
 refs = [
     "Blaylock, D. W., Ogura, T., Green, W. H., & Beran, G. J. O. (2009). "
     "Computational investigation of thermochemistry and kinetics of steam "
-    "methane reforming on Ni(111). J. Phys. Chem. C, 113(12), 4898\u20134908.",
+    "methane reforming on Ni(111). J. Phys. Chem. C, 113(12), 4898-4908.",
     "Jones, G., Jakobsen, J. G., Shim, S. S., Kleis, J., Andersson, M. P., "
     "Rossmeisl, J., Abild-Pedersen, F., Bligaard, T., Helveg, S., "
     "Hinnemann, B., Rostrup-Nielsen, J. R., Chorkendorff, I., Sehested, J., "
-    "& N\u00f8rskov, J. K. (2009). First principles calculations and "
+    "& Norskov, J. K. (2009). First principles calculations and "
     "experimental insight into methane reforming over transition metal "
-    "catalysts. J. Catal., 259(1), 147\u2013160.",
+    "catalysts. J. Catal., 259(1), 147-160.",
     "Wang, S.-G., Liao, X.-Y., Hu, J., Cao, D.-B., Li, Y.-W., Wang, J., & "
     "Jiao, H. (2013). Kinetic study of dry reforming of methane on "
-    "supported Rh catalysts. Surf. Sci., 616, 17\u201324.",
-    "N\u00f8rskov, J. K., Bligaard, T., Logadottir, A., Bahn, S., "
+    "supported Rh catalysts. Surf. Sci., 616, 17-24.",
+    "Norskov, J. K., Bligaard, T., Logadottir, A., Bahn, S., "
     "Hansen, L. B., Bollinger, M., Bengaard, H., Hammer, B., "
     "Sljivancanin, Z., Mavrikakis, M., Xu, Y., Dahl, S., & "
     "Jacobsen, C. J. H. (2002). Universality in heterogeneous catalysis. "
-    "J. Catal., 209(2), 275\u2013278.",
-    "Bligaard, T., N\u00f8rskov, J. K., Dahl, S., Matthiesen, J., "
-    "Christensen, C. H., & Sehested, J. (2004). The Br\u00f8nsted-Evans-Polanyi "
+    "J. Catal., 209(2), 275-278.",
+    "Bligaard, T., Norskov, J. K., Dahl, S., Matthiesen, J., "
+    "Christensen, C. H., & Sehested, J. (2004). The Bronsted-Evans-Polanyi "
     "relation and the volcano curve in heterogeneous catalysis. "
-    "J. Catal., 224(1), 206\u2013217.",
+    "J. Catal., 224(1), 206-217.",
     "Campbell, C. T. (2017). The degree of rate control: A powerful tool "
-    "for catalysis research. ACS Catal., 7(4), 2770\u20132779.",
-    "Vasiliades, M. A., Makri, M. M., Djinovi\u0107, P., Erjavec, B., "
+    "for catalysis research. ACS Catal., 7(4), 2770-2779.",
+    "Vasiliades, M. A., Makri, M. M., Djinovic, P., Erjavec, B., "
     "Pintar, A., & Efstathiou, A. M. (2016). Dry reforming of methane over "
-    "Ni-based catalysts. Appl. Catal. B, 197, 168\u2013183.",
+    "Ni-based catalysts. Appl. Catal. B, 197, 168-183.",
     "Fan, M.-S., Abdullah, A. Z., & Bhatia, S. (2009). Catalytic technology "
-    "for carbon dioxide reforming of methane. ChemCatChem, 1(2), 192\u2013208.",
+    "for carbon dioxide reforming of methane. ChemCatChem, 1(2), 192-208.",
 ]
 
 for i, ref in enumerate(refs, 1):
