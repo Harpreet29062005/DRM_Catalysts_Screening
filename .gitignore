@@ -1,0 +1,9 @@
+venv/
+__pycache__/
+*.pyc
+~$*.docx
+dft_env/
+kmos_final/
+venv/
+*.txt
+drm_local_smart/
